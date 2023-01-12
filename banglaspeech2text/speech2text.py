@@ -13,7 +13,7 @@ class Model:
         """
         Args:
             model_name_or_type (str or ModelType): Model name or type 
-            download_path (str): Path to download model
+            download_path (str): Path to download model (default: home directory)
             device (str): Device to use for inference (cpu, cuda, cuda:0, cuda:1, etc.)
             force (bool): Force download model
             verbose (bool): Verbose mode
@@ -51,8 +51,8 @@ class Model:
         if not self.model.is_downloaded():
             self.model.download()
 
-        self.pipe = pipeline(self.task, model=self.model.path, device=self.device, **self.kwargs)
- # type: ignore
+        self.pipe = pipeline(self.task, model=self.model.path,device=self.device, **self.kwargs)  # type: ignore
+
     @property
     def available_models(self):
         return available_models()

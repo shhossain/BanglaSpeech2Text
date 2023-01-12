@@ -13,8 +13,7 @@ pip install banglaspeech2text
 | 'base' | 200-300 MB | 46 |
 | 'small' | 900-1000 MB | 18 |
 
-__NOTE__: "Bigger model have better accuracy but slower inference speed. Smaller wer is better."
-__NOTE__: You can view the models from [here](https://github.com/shhossain/whisper_bangla_models)
+__NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better.You can view the models from [here](https://github.com/shhossain/whisper_bangla_models)
 
 
 ## Usage
@@ -104,7 +103,7 @@ print(models['base']) # get base models
 print(models['whisper_base_bn_sifat']) # get model by name
 
 # set download path
-model = Model(model,download_path=r"F:\Code\Python\BanglaSpeech2Text\models")
+model = Model(model,download_path=r"F:\Code\Python\BanglaSpeech2Text\models") # default is home directory
 model.load()
 
 # directly load a model
