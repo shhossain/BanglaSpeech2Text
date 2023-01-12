@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
-version = '0.0.1'
-description = 'BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla language. Fine-tuned on the latest whisper speech to text model for optimal performance.'
+version = '0.0.2'
+description = 'An open-source offline speech-to-text package for Bangla language. Fine-tuned on the latest whisper speech to text model for optimal performance.'
 
 with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
@@ -35,9 +35,7 @@ classifiers = [
 ]
 
 projects_links = {
-    "Home": "https://github.com/shhossain/BanglaSpeech2Text",
     "Documentation": "https://github.com/shhossain/BanglaSpeech2Text",
-    "PyPI": "https://pypi.org/project/BanglaSpeech2Text/",
     "Source": "https://github.com/shhossain/BanglaSpeech2Text",
     "Bug Tracker": "https://github.com/shhossain/BanglaSpeech2Text/issues",
 }
@@ -50,7 +48,7 @@ setup(
     long_description_content_type='text/markdown',
     author=author,
     author_email=email,
-    url=projects_links["Home"],
+    url="https://github.com/shhossain/BanglaSpeech2Text",
     project_urls=projects_links,
     packages=find_packages(),
     install_requires=required,
