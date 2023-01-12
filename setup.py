@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.0.3'
+version = '0.0.4'
 description = 'An open-source offline speech-to-text package for Bangla language. Fine-tuned on the latest whisper speech to text model for optimal performance.'
 
 with open('README.md', encoding='utf-8') as f:

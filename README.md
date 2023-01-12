@@ -109,5 +109,6 @@ model.load()
 # directly load a model
 model = Model('base')
 model.load()
+```
 
 
