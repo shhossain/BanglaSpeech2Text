@@ -58,21 +58,21 @@ class ModelDict:
         self._downloaded = False if self._path is None else True
         self._config = None
         self.repo = None
-        self.__load_config()
 
     def __load_config(self):
         if self._config is None:
+            # print(self._config_url,'config_url')
             res = requests.get(self._config_url)  # type: ignore
             self._config = res.json()
         return self._config
 
-    def __get_config(self, key):
+    def get_config(self, key):
         return self.__load_config().get(key, None)
 
     def clone(self, path: str):
         # check if path exists
 
-        url = self.__get_config("url")
+        url = self.get_config("url")
         if url is None:
             raise ValueError("url is None")
 
@@ -181,8 +181,16 @@ def get_models(url="https://raw.githubusercontent.com/shhossain/whisper_bangla_m
     ]
 
     models = [ModelDict(model) for model in models]
+    keep_models = []
+    for model in models:
+        try:
+            model.get_config("url")
+            keep_models.append(model)
+        except Exception as e:
+            logger.error(f"Error loading config for {model.name}: {e}")
 
-    return models
+    
+    return keep_models
 
 
 class AvailableModels:
@@ -259,8 +267,13 @@ class AvailableModels:
         return False
 
 
-def available_models() -> AvailableModels:
-    models = get_models()
+def available_models(force=False) -> AvailableModels:
+    """Returns a list of available models
+        Args:
+            force (bool, optional): Force download. Defaults to False.
+    """
+    
+    models = get_models(force=force)
     return AvailableModels(models)
 
 

@@ -1,11 +1,28 @@
 from typing import Optional, Union
 from banglaspeech2text.utils import app_name, logger, get_app_path
+from banglaspeech2text.utils.extras import get_hash, ShortTermMemory
 from banglaspeech2text.utils.download_models import ModelType, get_model, available_models, ModelDict
 import os
 # import torch
 from speech_recognition import AudioData
 from uuid import uuid4
 from threading import Thread
+from transformers import pipeline
+from banglaspeech2text.utils.install_packages import check_git_exists
+import subprocess
+import warnings
+warnings.filterwarnings("ignore")
+
+def initialize_git_lfs():
+    if not check_git_exists():
+        raise ValueError("Git is not installed. Please install Git and try again")
+    
+    cmd = "git lfs install"
+    try:
+        subprocess.check_output(cmd, shell=True)
+    except:
+        pass
+    
 
 
 class Model:
@@ -27,6 +44,8 @@ class Model:
         else:
             logger.setLevel("ERROR")
 
+        initialize_git_lfs()
+        
         if cache_path is not None:
             if not os.path.exists(cache_path):
                 raise ValueError(f"{cache_path} does not exist")
@@ -43,11 +62,16 @@ class Model:
 
         self.task = "automatic-speech-recognition"
         self.pipe = None
+        
+        self.from_audio_data = False
+        
+        self.cache_file = True
+        
+        if self.cache_file:
+            self.cache = ShortTermMemory(20)
 
     def load(self):
         logger.info("Loading model")
-        from transformers import pipeline
-
         if not self.model.is_downloaded():
             self.model.download()
 
@@ -67,13 +91,25 @@ class Model:
         return path
 
     def transcribe(self, audio_file) -> dict:
+        hash = None
+        if self.cache_file:
+            hash = get_hash(audio_file)
+            if hash in self.cache:
+                return self.cache[hash] # type: ignore
+        
         data: dict = self.pipe(audio_file)  # type: ignore
-        Thread(target=os.remove, args=(audio_file,)).start()
+        if self.from_audio_data:
+            Thread(target=os.remove, args=(audio_file,)).start()
+            self.from_audio_data = False
+        
+        if self.cache_file:
+            self.cache[hash] = data # type: ignore
         return data
 
     def recognize(self, audio) -> dict:
         if isinstance(audio, AudioData):
             audio = self.__get_wav_from_audiodata(audio)
+            self.from_audio_data = True
         return self.transcribe(audio)  # type: ignore
 
     def __call__(self, audio) -> dict:

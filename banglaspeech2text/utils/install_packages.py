@@ -50,5 +50,15 @@ def install_git_linux():
     subprocess.run(["sudo", "apt", "install", "git-lfs", "-y"])
     logger.info("Git for Linux installed successfully")
 
+def check_git_exists():
+    cmd = "git --version"
+    try:
+        subprocess.check_output(cmd, shell=True)
+        return True
+    except:
+        return False
 
-__all__ = ["install_git_windows", "install_git_linux"]
+
+
+
+__all__ = ["install_git_windows", "install_git_linux", "check_git_exists"]

@@ -10,3 +10,28 @@
 - Must have git to run
 - Added samll model
 
+0.0.7 (2023-01-13)
+------------------
+- Added cache file
+- Fixed bug
+
+0.0.8 (2023-01-13)
+------------------
+- Fixed app path for linux
+
+0.0.9 (2023-01-13)
+------------------
+- Linux support
+
+0.0.10 (2023-01-13)
+-------------------
+- Git lfs install on start
+
+0.0.11 (2023-01-13)
+-------------------
+- Git lfs install on start
+
+0.0.12 (2023-01-13)
+-------------------
+- Added force in available models
+
