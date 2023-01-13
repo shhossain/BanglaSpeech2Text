@@ -2,14 +2,14 @@ from typing import Optional, Union
 from banglaspeech2text.utils import app_name, logger, get_app_path
 from banglaspeech2text.utils.download_models import ModelType, get_model, available_models, ModelDict
 import os
-import torch
+# import torch
 from speech_recognition import AudioData
 from uuid import uuid4
 from threading import Thread
 
 
 class Model:
-    def __init__(self, model: Union[str, ModelType, ModelDict] = ModelType.base, download_path=None, device: Optional[Union[int, str, "torch.device"]] = None, force=False, verbose=False, **kwargs):
+    def __init__(self, model: Union[str, ModelType, ModelDict] = ModelType.base, cache_path=None, device: Optional[Union[int, str, "torch.device"]] = None, force=False, verbose=False, **kwargs):  # type: ignore
         """
         Args:
             model_name_or_type (str or ModelType): Model name or type 
@@ -27,10 +27,10 @@ class Model:
         else:
             logger.setLevel("ERROR")
 
-        if download_path is not None:
-            if not os.path.exists(download_path):
-                raise ValueError(f"{download_path} does not exist")
-            os.environ[app_name] = download_path
+        if cache_path is not None:
+            if not os.path.exists(cache_path):
+                raise ValueError(f"{cache_path} does not exist")
+            os.environ[app_name] = cache_path
 
         self.model: ModelDict = None  # type: ignore
         if isinstance(model, ModelDict):

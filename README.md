@@ -16,6 +16,50 @@ pip install banglaspeech2text
 __NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better.You can view the models from [here](https://github.com/shhossain/whisper_bangla_models)
 
 
+## Pre-requisites
+- Python 3.6+
+- Git
+- Git LFS
+
+## Download Git
+## Windows
+- Download git from [here](https://git-scm.com/download/win)
+- Download git lfs from [here](https://git-lfs.github.com/)
+
+__Note__: Must check git lfs is marked during installation. If not, you can install git lfs from [here](https://git-lfs.github.com/)
+
+## Linux
+- [Git](https://git-scm.com/download/linux)
+- Git LFS
+Ubuntu 16.04
+```bash
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install git-lfs
+```
+Ubuntu 18.04 and above
+```bash
+sudo apt-get install git-lfs
+```
+
+## Mac
+- [Git](https://git-scm.com/download/mac)
+- Git LFS
+```bash
+brew install git-lfs
+```
+
+## Download Git with banglaspeech2text
+```bash
+from banglaspeech2text.utils.install_packages import install_git_windows, install_git_linux
+
+# for windows
+install_git_windows()
+
+# for linux
+install_git_linux()
+```
+
+
 ## Usage
 
 ### Download a model
