@@ -35,3 +35,15 @@
 -------------------
 - Added force in available models
 
+0.0.13 (2023-01-13)
+-------------------
+- Added force in available models
+- Added large model
+
+0.0.14 (2023-01-13)
+-------------------
+- Fix bug on modeldict url
+
+0.0.15 (2023-01-13)
+-------------------
+- Change hash key

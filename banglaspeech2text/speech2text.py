@@ -26,7 +26,7 @@ def initialize_git_lfs():
 
 
 class Model:
-    def __init__(self, model: Union[str, ModelType, ModelDict] = ModelType.base, cache_path=None, device: Optional[Union[int, str, "torch.device"]] = None, force=False, verbose=False, **kwargs):  # type: ignore
+    def __init__(self, model: Union[str, ModelType, ModelDict] = ModelType.base, cache_path=None, device: Optional[Union[int, str, "torch.device"]] = None, force=False, verbose=True, **kwargs):  # type: ignore
         """
         Args:
             model_name_or_type (str or ModelType): Model name or type 
@@ -94,6 +94,7 @@ class Model:
         hash = None
         if self.cache_file:
             hash = get_hash(audio_file)
+            hash = f"{self.model.name}_{hash}"
             if hash in self.cache:
                 return self.cache[hash] # type: ignore
         

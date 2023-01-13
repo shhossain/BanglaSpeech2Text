@@ -122,7 +122,7 @@ class ModelDict:
     @property
     def size(self): return self.__return_val(self._size, "size")
     @property
-    def url(self): return self.__return_val(self._url, "url")
+    def url(self): return self.__return_val(self._config_url, "config_url")
     @property
     def path(self): return self.__return_val(self._path, "path")
 
@@ -139,15 +139,16 @@ class ModelDict:
         elif key == "size":
             self._size = value
         elif key == "url":
-            self._url = value
+            self._config_url = value
         elif key == "path":
             self._path = value
 
     def __repr__(self):
-        return f"Model(name={self.name}, type={self.type}, wer={self.wer}, size={self.size}, url={self.url})"
+        return f"Model(name={self.name}, type={self.type}, wer={self.wer}, size={self.size})"
 
     def __str__(self):
         return f"{self.name}({self.type})"
+    
 
 
 def get_models(url="https://raw.githubusercontent.com/shhossain/whisper_bangla_models/main/all_models.csv", force=False):
@@ -239,7 +240,7 @@ class AvailableModels:
         ...
 
     # type:ignore
-    def __getitem__(self, index: Union[int, str, ModelType]):
+    def __getitem__(self, index: Union[int, str, ModelType]) -> Union[ModelDict, List[ModelDict]]:
         if isinstance(index, int):
             return self.models[index]
         elif isinstance(index, str):

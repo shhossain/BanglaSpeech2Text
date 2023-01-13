@@ -12,8 +12,9 @@ pip install banglaspeech2text
 | 'tiny' | 100-200 MB | N/A |
 | 'base' | 200-300 MB | 46 |
 | 'small'| 2-3 GB     | 18 |
+| 'large'| 5-6 GB     | 11 |
 
-__NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better.You can view the models from [here](https://github.com/shhossain/whisper_bangla_models)
+__NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better.You can view the models from [here](https://github.com/shhossain/whisper_bangla_models). The size of the mode is an estimate. The actual size may vary.
 
 
 ## Pre-requisites
