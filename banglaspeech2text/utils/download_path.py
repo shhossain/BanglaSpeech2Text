@@ -1,12 +1,14 @@
 # Determine Download Path
 import os
-
+app_name = "BanglaSpeech2Text"
 
 def get_user_path():
     """Get user home path"""
-    if "BanglaSpeech2Text" in os.environ:
-        if os.environ['BanglaSpeech2Text']:
-            return os.environ['BanglaSpeech2Text']
+    if app_name in os.environ:
+        # print('app_name in os.environ')
+        if not os.path.exists(os.environ[app_name]):
+            os.makedirs(os.environ[app_name])
+        return os.environ[app_name]
 
     return os.path.expanduser("~")
 

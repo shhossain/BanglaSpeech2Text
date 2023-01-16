@@ -23,9 +23,7 @@ def initialize_git_lfs():
     except:
         pass
     
-depricated_kwargs = {
-    'download_path': 'cache_path',
-}
+
 
 
 class Model:
@@ -41,15 +39,10 @@ class Model:
         **kwargs are passed to transformers.pipeline
         See more at https://huggingface.co/transformers/main_classes/pipelines.html#transformers.pipeline
         """
+        self.cache_path = cache_path
         
-        for key, value in depricated_kwargs.items():
-            if key in kwargs:
-                warnings.warn(f"{key} is depricated. Please use {value} instead", DeprecationWarning)
-                kwargs[value] = kwargs[key]
-                del kwargs[key]
+        self.handle_deprecation_warnings(kwargs)
         
-        
-
         if verbose:
             logger.setLevel("INFO")
         else:
@@ -57,10 +50,9 @@ class Model:
 
         initialize_git_lfs()
         
-        if cache_path is not None:
-            if not os.path.exists(cache_path):
-                raise ValueError(f"{cache_path} does not exist")
-            os.environ[app_name] = cache_path
+        
+        if self.cache_path is not None:
+            os.environ[app_name] = self.cache_path
             if 'cache_path' in kwargs:
                 del kwargs['cache_path']
 
@@ -82,6 +74,15 @@ class Model:
         
         if self.cache_file:
             self.cache = ShortTermMemory(20)
+    
+    def handle_deprecation_warnings(self, kwargs):
+        if "download_path" in kwargs:
+            logger.error("`download_path` is deprecated. Please use `cache_path` instead")
+            warnings.warn("`download_path` is deprecated. Please use `cache_path` instead", DeprecationWarning)
+            self.cache_path = kwargs["download_path"]
+            del kwargs["download_path"]
+        
+        
 
     def load(self):
         logger.info("Loading model")
@@ -120,7 +121,16 @@ class Model:
             self.cache[hash] = data # type: ignore
         return data
 
-    def recognize(self, audio) -> dict:
+    def recognize(self, audio, **kw) -> dict:
+        """
+        Args:
+            audio (str or AudioData): Audio file path or AudioData object
+            cache (bool): Cache file (default: True)
+        """
+        if "cache" in kw:
+            self.cache_file = kw["cache"]
+            del kw["cache"]
+        
         if isinstance(audio, AudioData):
             audio = self.__get_wav_from_audiodata(audio)
             self.from_audio_data = True

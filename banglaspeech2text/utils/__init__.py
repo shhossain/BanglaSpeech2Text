@@ -15,7 +15,6 @@ logger = logging.getLogger(app_name)
 
 models_download_repo = "https://raw.githubusercontent.com/shhossain/whisper_bangla_models/"
 
-
 __all__ = [
     'get_app_path', 'logger', 'models_download_repo', 'app_name'
 ]
