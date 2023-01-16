@@ -22,6 +22,9 @@ __NOTE__: Bigger model have better accuracy but slower inference speed. Smaller 
 - Git
 - Git LFS
 
+## Test it in Google Colab
+- [NoteBook](https://colab.research.google.com/drive/1rj4Jme6qrc8tRaPY3MTuuUc6MEr8We9N?usp=sharing)
+
 ## Download Git
 ## Windows
 - Download git from [here](https://git-scm.com/download/win)
