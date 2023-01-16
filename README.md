@@ -141,6 +141,7 @@ print(output['text'])
 __NOTE__: This package uses torch as backend. So, you can use any device supported by torch. For more information, see [here](https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device). But you need to setup torch for gpu first from [here](https://pytorch.org/get-started/locally/).
 
 ### Instantly Check with gradio
+```python
 from banglaspeech2text import Model, available_models
 import gradio as gr
 
@@ -158,6 +159,7 @@ gr.Interface(
     fn=transcribe, 
     inputs=gr.Audio(source="microphone", type="filepath"), 
     outputs="text").launch(share=True)
+```
 
 ### Some Methods
 ```python
