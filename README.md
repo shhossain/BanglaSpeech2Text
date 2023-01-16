@@ -85,7 +85,7 @@ model = Model(model) # load the model
 model.load()
 
 # Use with file
-file_name = 'test.wav'
+file_name = 'test.wav' # .wav, .mp3, mp4, .ogg, etc.
 output = model.recognize(file_name)
 
 print(output) # output will be a dict containing text
