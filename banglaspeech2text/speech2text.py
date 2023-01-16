@@ -11,7 +11,7 @@ from transformers import pipeline
 from banglaspeech2text.utils.install_packages import check_git_exists
 import subprocess
 import warnings
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 
 def initialize_git_lfs():
     if not check_git_exists():
@@ -23,6 +23,9 @@ def initialize_git_lfs():
     except:
         pass
     
+depricated_kwargs = {
+    'download_path': 'cache_path',
+}
 
 
 class Model:
@@ -30,7 +33,7 @@ class Model:
         """
         Args:
             model_name_or_type (str or ModelType): Model name or type 
-            download_path (str): Path to download model (default: home directory)
+            cache_path (str): Path to download model (default: home directory)
             device (str): Device to use for inference (cpu, cuda, cuda:0, cuda:1, etc.)
             force (bool): Force download model
             verbose (bool): Verbose mode
@@ -38,6 +41,14 @@ class Model:
         **kwargs are passed to transformers.pipeline
         See more at https://huggingface.co/transformers/main_classes/pipelines.html#transformers.pipeline
         """
+        
+        for key, value in depricated_kwargs.items():
+            if key in kwargs:
+                warnings.warn(f"{key} is depricated. Please use {value} instead", DeprecationWarning)
+                kwargs[value] = kwargs[key]
+                del kwargs[key]
+        
+        
 
         if verbose:
             logger.setLevel("INFO")
@@ -50,6 +61,8 @@ class Model:
             if not os.path.exists(cache_path):
                 raise ValueError(f"{cache_path} does not exist")
             os.environ[app_name] = cache_path
+            if 'cache_path' in kwargs:
+                del kwargs['cache_path']
 
         self.model: ModelDict = None  # type: ignore
         if isinstance(model, ModelDict):

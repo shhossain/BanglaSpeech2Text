@@ -63,20 +63,12 @@ install_git_windows()
 install_git_linux()
 ```
 
+__Note__: If you have already installed git and git lfs, you can skip this step. And it may not work in some cases. So, you can install git and git lfs manually.
+
 
 ## Usage
 
-### Download a model
-```python
-from banglaspeech2text import Model, available_models
 
-# Download a model
-models = available_models()
-print(models) # see the available models by diffrent people and diffrent sizes
-
-model = models[0] # select a model
-model.download() # download the model
-```
 ### Use with file
 ```python
 from banglaspeech2text import Model, available_models
@@ -85,7 +77,7 @@ from banglaspeech2text import Model, available_models
 models = available_models()
 model = models[0] # select a model
 model = Model(model) # load the model
-model.load()
+model.load() # first time it will download the model. It will take some time. So, be patient.
 
 # Use with file
 file_name = 'test.wav' # .wav, .mp3, mp4, .ogg, etc.
@@ -103,7 +95,7 @@ from banglaspeech2text import Model, available_models
 # Load a model
 models = available_models()
 model = models[0] # select a model
-model = Model(model) # load the model
+model = Model(model) # 
 model.load()
 
 
@@ -125,7 +117,7 @@ from banglaspeech2text import Model, available_models
 # Load a model
 models = available_models()
 model = models[0] # select a model
-model = Model(model,device="gpu") # load the model
+model = Model(model,device="cuda:0") # load the model
 model.load()
 
 
