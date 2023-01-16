@@ -140,6 +140,24 @@ print(output['text'])
 ```
 __NOTE__: This package uses torch as backend. So, you can use any device supported by torch. For more information, see [here](https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device). But you need to setup torch for gpu first from [here](https://pytorch.org/get-started/locally/).
 
+### Instantly Check with gradio
+from banglaspeech2text import Model, available_models
+import gradio as gr
+
+# Load a model
+models = available_models()
+model = models[0] # select a model
+model = Model(model,device="cuda:0") # remove device if you don't want to use gpu.Ex. model = Model(model)
+model.load()
+
+def transcribe(audio_file):
+  return model(audio_file)['text']
+
+# You can also open the url and check it in mobile
+gr.Interface(
+    fn=transcribe, 
+    inputs=gr.Audio(source="microphone", type="filepath"), 
+    outputs="text").launch(share=True)
 
 ### Some Methods
 ```python
