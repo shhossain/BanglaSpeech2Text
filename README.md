@@ -1,174 +1,120 @@
 # Bangla Speech to Text
 BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla language. Fine-tuned on the latest whisper speech to text model for optimal performance. Transcribe speech to text, convert voice to text and perform speech recognition in python with ease, even without internet connection.
 
-## Installation
-```bash
-pip install banglaspeech2text
-```
 
 ## Models
 | Model | Size | Best(WER) |
 | --- | --- | --- |
-| 'tiny' | 100-200 MB | N/A |
+| 'tiny' | 100-200 MB | 60 |
 | 'base' | 200-300 MB | 46 |
 | 'small'| 2-3 GB     | 18 |
 | 'large'| 5-6 GB     | 11 |
 
-__NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better.You can view the models from [here](https://github.com/shhossain/whisper_bangla_models). The size of the mode is an estimate. The actual size may vary.
+__NOTE__: Bigger model have better accuracy but slower inference speed. Smaller wer is better. More models [HuggingFace Model Hub](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes)
 
 
 ## Pre-requisites
 - Python 3.6+
-- Git
-- Git LFS
+
 
 ## Test it in Google Colab
-- [NoteBook](https://colab.research.google.com/drive/1rj4Jme6qrc8tRaPY3MTuuUc6MEr8We9N?usp=sharing)
+- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/shhossain/BanglaSpeech2Text/blob/main/BanglaSpeech2Text_in_Colab.ipynb)
 
-## Download Git
-## Windows
-- Download git from [here](https://git-scm.com/download/win)
-- Download git lfs from [here](https://git-lfs.github.com/)
+## Installation
+You can install the library using pip:
 
-__Note__: Must check git lfs is marked during installation. If not, you can install git lfs from [here](https://git-lfs.github.com/)
-
-## Linux
-- [Git](https://git-scm.com/download/linux)
-- Git LFS
-Ubuntu 16.04
 ```bash
-curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-sudo apt-get install git-lfs
+pip install banglaspeech2text
 ```
-Ubuntu 18.04 and above
-```bash
-sudo apt-get install git-lfs
-```
-
-## Mac
-- [Git](https://git-scm.com/download/mac)
-- Git LFS
-```bash
-brew install git-lfs
-```
-
-## Download Git with banglaspeech2text
-```bash
-from banglaspeech2text.utils.install_packages import install_git_windows, install_git_linux
-
-# for windows
-install_git_windows()
-
-# for linux
-install_git_linux()
-```
-
-__Note__: If you have already installed git and git lfs, you can skip this step. And it may not work in some cases. So, you can install git and git lfs manually.
 
 
 ## Usage
+### Model Initialization
+To use the library, you need to initialize the Speech2Text class with the desired model. By default, it uses the "base" model, but you can choose from different pre-trained models: "tiny", "small", "medium", "base", or "large". Here's an example:
 
-
-### Use with file
 ```python
-from banglaspeech2text import Model, available_models
+from banglaspeech2text import Speech2Text
 
-# Load a model
-models = available_models()
-model = models[0] # select a model
-model = Model(model) # load the model
-model.load() # first time it will download the model. It will take some time. So, be patient.
+stt = Speech2Text(model="base")
 
-# Use with file
-file_name = 'test.wav' # .wav, .mp3, mp4, .ogg, etc.
-output = model.recognize(file_name)
+# You can use it wihout specifying model name (default model is "base")
+stt = Speech2Text()
+```
 
-print(output) # output will be a dict containing text
-print(output['text'])
+### Transcribing Audio Files
+You can transcribe an audio file by calling the transcribe method and passing the path to the audio file. It will return the transcribed text as a string. Here's an example:
+
+```python
+transcription = stt.transcribe("audio.wav")
+print(transcription)
 ```
 
 ### Use with SpeechRecognition
+You can use [SpeechRecognition](https://pypi.org/project/SpeechRecognition/) package to get audio from microphone and transcribe it. Here's an example:
 ```python
 import speech_recognition as sr
-from banglaspeech2text import Model, available_models
+from banglaspeech2text import Speech2Text
 
-# Load a model
-models = available_models()
-model = models[0] # select a model
-model = Model(model) # 
-model.load()
-
+stt = Speech2Text(model="base")
 
 r = sr.Recognizer()
 with sr.Microphone() as source:
     print("Say something!")
     audio = r.listen(source)
-    output = model.recognize(audio)
+    output = stt.recognize(audio)
 
-print(output) # output will be a dict containing text
-print(output['text'])
+print(output)
 ```
 
 ### Use GPU
+You can use GPU for faster inference. Here's an example:
 ```python
-import speech_recognition as sr
-from banglaspeech2text import Model, available_models
 
-# Load a model
-models = available_models()
-model = models[0] # select a model
-model = Model(model,device="cuda:0") # load the model
-model.load()
+stt = Speech2Text(model="base",use_gpu=True)
 
-
-r = sr.Recognizer()
-with sr.Microphone() as source:
-    print("Say something!")
-    audio = r.listen(source)
-    output = model.recognize(audio)
-
-print(output) # output will be a dict containing text
-print(output['text'])
 ```
-__NOTE__: This package uses torch as backend. So, you can use any device supported by torch. For more information, see [here](https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device). But you need to setup torch for gpu first from [here](https://pytorch.org/get-started/locally/).
+### Advanced GPU Usage
+For more advanced GPU usage you can use `device` or `device_map` parameter. Here's an example:
+```python
+stt = Speech2Text(model="base",device="cuda:0")
+```
+```python
+stt = Speech2Text(model="base",device_map="auto")
+```
+__NOTE__: Read more about [Pytorch Device](https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device)
 
 ### Instantly Check with gradio
+You can instantly check the model with gradio. Here's an example:
 ```python
-from banglaspeech2text import Model, available_models
+from banglaspeech2text import Speech2Text, available_models
 import gradio as gr
 
-# Load a model
-models = available_models()
-model = models[0] # select a model
-model = Model(model,device="cuda:0") # remove device if you don't want to use gpu.Ex. model = Model(model)
-model.load()
-
-def transcribe(audio_file):
-  return model(audio_file)['text']
+stt = Speech2Text(model="base",use_gpu=True)
 
 # You can also open the url and check it in mobile
 gr.Interface(
-    fn=transcribe, 
+    fn=stt.transcribe, 
     inputs=gr.Audio(source="microphone", type="filepath"), 
     outputs="text").launch(share=True)
 ```
 
-### Some Methods
+## Some more usage examples
+
+### Change Model from huggingface model hub
 ```python
-from banglaspeech2text import Model, available_models
-
-models = available_models()
-print(models[0]) # get first model
-print(models['base']) # get base models
-print(models['whisper_base_bn_sifat']) # get model by name
-
-# set download path
-model = Model(model,download_path=r"F:\Code\Python\BanglaSpeech2Text\models") # default is home directory
-model.load()
-
-# directly load a model
-model = Model('base')
-model.load()
+sst = Speech2Text(model="openai/whisper-tiny")
 ```
+### Change Model Save location
+```python
+sst = Speech2Text(model="base",cache_path="path/to/save/model")
+```
+### See current model info
+```python
+sst = Speech2Text(model="base")
 
-
+print(sst.model_name) # the name of the model
+print(sst.model_size) # the size of the model
+print(sst.model_license) # the license of the model
+print(sst.model_description) # the description of the model(in .md format)
+print(sst.model_url) # the url of the model
+```

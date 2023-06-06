@@ -1,11 +1,20 @@
-from banglaspeech2text import available_models, Model
+from banglaspeech2text import Speech2Text
+
+# Let's see what models are available
+available_models = Speech2Text.list_models()
+
+# Now Let's create an instance of Speech2Text
+# I am using the base model here. You can use any model you want. tiny < base < small < medium < large < xl
+s2t = Speech2Text("base") 
 
 
-models = available_models(True)
-file_path = r"F:\Code\Python\rodela_bot\app\data\উদ্দেশ্য_licence.wav"
+# Now let's transcribe a file
+transcription = s2t.transcribe("test.wav")
 
-model = Model(models[0], verbose=True, download_path="models")
-model.load()
-# model.cache_file = False
-print(model)
-print(model(file_path))
+# Let's see what we got
+print(transcription)
+
+
+print("Hurray! We are done!")
+
+

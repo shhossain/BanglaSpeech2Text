@@ -1,161 +1,387 @@
-from typing import Optional, Union
-from banglaspeech2text.utils import app_name, logger, get_app_path
-from banglaspeech2text.utils.extras import get_hash, ShortTermMemory
-from banglaspeech2text.utils.download_models import ModelType, get_model, available_models, ModelDict
+from pprint import pformat
+from typing import  Union
+import io
+import librosa
+import numpy as np
+from banglaspeech2text.utils import (
+    all_models,
+    nice_model_list,
+    safe_name,
+    get_cache_dir,
+    get_model,
+    get_wer_value,
+    convert_file_size,
+)
+import requests
 import os
-# import torch
 from speech_recognition import AudioData
-from uuid import uuid4
-from threading import Thread
-from transformers import pipeline
-from banglaspeech2text.utils.install_packages import check_git_exists
-import subprocess
-import warnings
-# warnings.filterwarnings("ignore")
-
-def initialize_git_lfs():
-    if not check_git_exists():
-        raise ValueError("Git is not installed. Please install Git and try again")
-    
-    cmd = "git lfs install"
-    try:
-        subprocess.check_output(cmd, shell=True)
-    except:
-        pass
-    
+import transformers
+import re
+import yaml
+import json
 
 
 
 class Model:
-    def __init__(self, model: Union[str, ModelType, ModelDict] = ModelType.base, cache_path=None, device: Optional[Union[int, str, "torch.device"]] = None, force=False, verbose=True, **kwargs):  # type: ignore
-        """
-        Args:
-            model_name_or_type (str or ModelType): Model name or type 
-            cache_path (str): Path to download model (default: home directory)
-            device (str): Device to use for inference (cpu, cuda, cuda:0, cuda:1, etc.)
-            force (bool): Force download model
-            verbose (bool): Verbose mode
+    def __init__(self, name: str, cache_path: str = None, **kw):  # type: ignore
+        self.kw = kw
+        self.raw_name = name
+        if "/" in name:
+            self.name = name
+            self.author = name.split("/")[0]
+            self.save_name = safe_name(name.split("/")[1], self.author)
+        else:
+            bst = get_model(name)
+            self.name = bst["name"]
+            self.author = bst["author"]
+            self.save_name = safe_name(self.name, self.author)
+            last_part = bst["url"].split("/")[-2:]
+            self.raw_name = "/".join(last_part)
 
-        **kwargs are passed to transformers.pipeline
-        See more at https://huggingface.co/transformers/main_classes/pipelines.html#transformers.pipeline
-        """
+        # fix save path
+        self.cache_dir = get_cache_dir()
+        cache_dir_models = os.path.join(self.cache_dir, "models")
+        if not os.path.exists(cache_dir_models):
+            os.makedirs(cache_dir_models)
+
+        if cache_path is None:
+            cache_path = os.path.join(cache_dir_models, self.save_name)
+        else:
+            cache_path = os.path.join(str(cache_path), "models", self.save_name)
+
+        # check if model is downloaded
         self.cache_path = cache_path
-        
-        self.handle_deprecation_warnings(kwargs)
-        
-        if verbose:
-            logger.setLevel("INFO")
+        if not os.path.exists(cache_path):
+            self.pipeline = self._get_pipeline(cache_path)
         else:
-            logger.setLevel("ERROR")
+            self.pipeline = transformers.pipeline(
+                task="automatic-speech-recognition", model=cache_path, **kw
+            )
 
-        initialize_git_lfs()
-        
-        
-        if self.cache_path is not None:
-            os.environ[app_name] = self.cache_path
-            if 'cache_path' in kwargs:
-                del kwargs['cache_path']
+        self.__MAX_WER_SCORE = 1000
 
-        self.model: ModelDict = None  # type: ignore
-        if isinstance(model, ModelDict):
-            self.model = model
+        self._type: str = ""
+        self._license: str = ""
+        self._description: str = ""
+        self._url: str = ""
+        self._wer: float = self.__MAX_WER_SCORE
+        self._size: str = ""
+        self._lang: str = ""
+
+        self.load_details()
+
+    def _get_pipeline(self, cache_path: str) -> transformers.Pipeline:
+        pipeline = transformers.pipeline
+        pipe = pipeline(
+            task="automatic-speech-recognition", model=self.raw_name, **self.kw
+        )
+        pipe.save_pretrained(cache_path)
+        return pipe
+
+    def load_details(self, force_reload=False) -> None:
+        details_path = os.path.join(self.cache_path, "details.json")
+        if not os.path.exists(details_path) or force_reload:
+            mdl = get_model(self.raw_name, raise_error=False)
+            if mdl is not None:
+                self._type = mdl["type"]
+                self._license = mdl["license"]
+                self._description = mdl["description"]
+                self._url = mdl["url"]
+                self._wer = mdl["wer"]
+                self._size = mdl["size"]
+                self.save_details(details_path)
+            else:
+                if "base" in self.name:
+                    self._type = "base"
+                elif "large" in self.name:
+                    self._type = "large"
+                elif "tiny" in self.name:
+                    self._type = "tiny"
+                elif "small" in self.name:
+                    self._type = "small"
+                elif "medium" in self.name:
+                    self._type = "medium"
+                else:
+                    self._type = "unknown"
+
+                self._url = f"https://huggingface.co/{self.raw_name}"
+
+                # check cache path files and get the file with "model" in it and get the size. 3.06 GB = ~3.1 GB, 346 MB = ~350 MB
+                files = os.listdir(self.cache_path)
+                for file in files:
+                    if "_model" in file:
+                        file_path = os.path.join(self.cache_path, file)
+                        size = os.path.getsize(file_path)
+                        self._size = convert_file_size(size)
+                        break
+
+                try:
+                    url = f"{self._url}/raw/main/README.md"
+                    res = requests.get(url)
+                    if res.status_code == 200:
+                        text = res.text
+                        self._description = text
+
+                        pattern = r"---\n(.*?)\n---"
+                        data = re.search(pattern, text, re.DOTALL)
+
+                        if data:
+                            data = data.group(1)
+                            pardata = yaml.safe_load(data)
+                            self._license = pardata.get("license", "unknown")
+                            self._lang = pardata.get("language", None)
+                            self._wer = get_wer_value(text, max_wer=self.__MAX_WER_SCORE)
+
+                except Exception as e:
+                    pass
+
+                self.save_details(details_path)
+
         else:
-            self.model = get_model(model, force=force)
+            with open(details_path, "r") as f:
+                details = json.load(f)
+            self._type = details["type"]
+            self._license = details["license"]
+            self._description = details["description"]
+            self._url = details["url"]
+            self._wer = details["wer"]
+            self._size = details["size"]
+            self._lang = details["lang"]
 
-        self.device = device
-        self.kwargs = kwargs
-
-        self.task = "automatic-speech-recognition"
-        self.pipe = None
-        
-        self.from_audio_data = False
-        
-        self.cache_file = True
-        
-        if self.cache_file:
-            self.cache = ShortTermMemory(20)
-    
-    def handle_deprecation_warnings(self, kwargs):
-        if "download_path" in kwargs:
-            logger.error("`download_path` is deprecated. Please use `cache_path` instead")
-            warnings.warn("`download_path` is deprecated. Please use `cache_path` instead", DeprecationWarning)
-            self.cache_path = kwargs["download_path"]
-            del kwargs["download_path"]
-        
-        
-
-    def load(self):
-        logger.info("Loading model")
-        if not self.model.is_downloaded():
-            self.model.download()
-
-        self.pipe = pipeline(self.task, model=self.model.path,device=self.device, **self.kwargs)  # type: ignore
+    def save_details(self, details_path: str) -> None:
+        details = {
+            "type": self._type,
+            "license": self._license,
+            "description": self._description,
+            "url": self._url,
+            "wer": self._wer,
+            "size": self._size,
+            "lang": self._lang,
+        }
+        with open(details_path, "w") as f:
+            json.dump(details, f)
 
     @property
-    def available_models(self):
-        return available_models()
+    def type(self) -> str:
+        return self._type
 
-    def __get_wav_from_audiodata(self, data: AudioData):
-        temp_audio_file = f"{uuid4()}.wav"
-        path = os.path.join(get_app_path(app_name), temp_audio_file)
+    @property
+    def license(self) -> str:
+        return self._license
 
-        with open(path, "wb") as f:
-            f.write(data.get_wav_data())
+    @property
+    def description(self) -> str:
+        return self._description
 
-        return path
+    @property
+    def url(self) -> str:
+        return self._url
 
-    def transcribe(self, audio_file) -> dict:
-        hash = None
-        if self.cache_file:
-            hash = get_hash(audio_file)
-            hash = f"{self.model.name}_{hash}"
-            if hash in self.cache:
-                return self.cache[hash] # type: ignore
+    @property
+    def wer(self) -> float:
+        return self._wer
+
+    @property
+    def size(self) -> str:
+        return self._size
+
+    @property
+    def lang(self) -> str:
+        return self._lang
+    
+    
         
-        data: dict = self.pipe(audio_file)  # type: ignore
-        if self.from_audio_data:
-            Thread(target=os.remove, args=(audio_file,)).start()
-            self.from_audio_data = False
-        
-        if self.cache_file:
-            self.cache[hash] = data # type: ignore
-        return data
-
-    def recognize(self, audio, **kw) -> dict:
-        """
-        Args:
-            audio (str or AudioData): Audio file path or AudioData object
-            cache (bool): Cache file (default: True)
-        """
-        if "cache" in kw:
-            self.cache_file = kw["cache"]
-            del kw["cache"]
-        
-        if isinstance(audio, AudioData):
-            audio = self.__get_wav_from_audiodata(audio)
-            self.from_audio_data = True
-        return self.transcribe(audio)  # type: ignore
-
-    def __call__(self, audio) -> dict:
-        return self.recognize(audio)
 
     def __repr__(self):
-        return f"Model(name={self.model.name}, type={self.model.type})"
+        return f"ModelDict(name={self.name}, type={self.type})"
 
     def __str__(self):
-        return self.__repr__()
+        txt = f"Model: {self.name}\n"
+        txt += f"Type: {self.type}\n"
+        txt += f"Author: {self.author}\n"
+        txt += f"License: {self.license}\n"
+        txt += f"Size: {self.size}\n"
+        txt += f"WER: {self.wer}\n"
+        txt += f"URL: {self.url}\n"
+        return txt
+    
+    # Removed methods
+    def recognize(self, audio) -> None:
+        raise NotImplementedError("""This method is removed. Use Speech2Text class instead.\n\nExamples:
+            >>> from bangla_stt import Speech2Text
+            >>> stt = Speech2Text()
+            >>> stt.recognize("test.wav")
+            
+            >>> stt = Speech2Text("tiny")
+            >>> stt.recognize("test.wav") """)
+    
+    def __call__(self, audio) -> None:
+        self.recognize(audio)
+    
+    def transcribe(self, audio) -> None:
+        self.recognize(audio)
+    
 
 
-__all__ = [
-    "Model",
-    "available_models",
-    "ModelType",
-]
+class Models:
+    def __str__(self) -> str:
+        return f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"
+
+    def __repr__(self) -> str:
+        return pformat(all_models)
+
+    def __getitem__(self, key: int) -> str:
+        # 0 for tiny, 1 for small, 2 for medium, 3 for base, 4 for large
+        models = ["tiny", "small", "medium", "base", "large"]
+        if key < 0 or key > 4:
+            raise IndexError("Index out of range. Index must be between 0 and 4")
+        return models[key]
+
+
+class Speech2Text:
+    def __init__(
+        self, model: str = "base", cache_path: str = None, use_gpu: bool = False, **kw): # type: ignore
+        """
+        Speech to text model
+        Args:
+            model (str, optional): Model name. Defaults to "base".
+            cache_path (str, optional): Cache path to store the model. Defaults to None.
+            use_gpu (bool, optional): Use GPU or not. Defaults to False.
+        **kw: 
+            Keyword arguments are passed to the transformers pipeline
+        Examples:
+            >>> from bangla_stt import Speech2Text
+            >>> stt = Speech2Text()
+            >>> stt.recognize("test.wav")
+            >>>
+            >>> stt = Speech2Text("tiny")
+            >>> stt.recognize("test.wav")        
+        """
+
+        if kw.get("device", None) is None and kw.get("device_map", None) is None:
+            if use_gpu:
+                kw["device"] = "cuda"
+            else:
+                kw["device"] = "cpu"
+
+        self.kw = kw
+        self.model = Model(model, cache_path=cache_path, **kw)
+        self.use_gpu = use_gpu
+    
+    @property
+    def model_name(self) -> str:
+        return self.model.name
+    
+    @property
+    def model_type(self) -> str:
+        return self.model.type
+    
+    @property
+    def model_license(self) -> str:
+        return self.model.license
+    
+    @property
+    def model_description(self) -> str:
+        return self.model.description
+    
+    @property
+    def model_url(self) -> str:
+        return self.model.url
+    
+    @property
+    def model_wer(self) -> float:
+        return self.model.wer
+    
+    @property
+    def model_size(self) -> str:
+        return self.model.size
+    
+    @property
+    def model_lang(self) -> str:
+        return self.model.lang
+    
+    @property
+    def model_details(self) -> str:
+        return self.model.__str__()
+
+    @property
+    def pipeline(self) -> transformers.Pipeline:
+        return self.model.pipeline
+    
+    def reload_model_details(self, force_reload=False) -> None:
+        """
+        Reload model details from huggingface.co
+        Args:
+            force_reload: If True, reload details from huggingface.co
+        """
+        self.model.load_details(force_reload=force_reload)
+    
+    
+
+    def transcribe(self, audio_path: str) -> str:
+        """
+        Transcribe an audio file to text
+        Args:
+            audio_path (str): Path to the audio file
+        Returns:
+            str: Transcribed text
+        """
+        return self.pipeline(audio_path)["text"]  # type: ignore
+
+    def recognize(self, audio: Union[bytes, np.ndarray, str, AudioData]) -> str:
+        """
+        Recognize an audio to text
+        Args:
+            audio (str, bytes, np.ndarray, AudioData): Audio to recognize
+        Returns:
+            str: Transcribed text
+        """
+        data: np.ndarray = np.array([])
+        if isinstance(audio, AudioData):
+            wav_data = audio.get_wav_data(convert_rate=16000)
+            f = io.BytesIO(wav_data)
+            data, _ = librosa.load(f, sr=16000)
+        elif isinstance(audio, str):
+            data, _ = librosa.load(audio, sr=16000)
+        elif isinstance(audio, bytes):
+            f = io.BytesIO(audio)
+            data, _ = librosa.load(f, sr=16000)
+        elif isinstance(audio, np.ndarray):
+            data = audio
+        else:
+            raise TypeError("Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData")
+
+        return self.pipeline(data)["text"]  # type: ignore
+    
+
+    def __call__(self, audio: Union[bytes, np.ndarray, str, AudioData]) -> str:
+        """
+        Recognize an audio to text
+        Args:
+            audio (str, bytes, np.ndarray, AudioData): Audio to recognize
+        Returns:
+            str: Transcribed text
+        """
+        return self.recognize(audio)
+    
+    def __repr__(self) -> str:
+       return f"Speech2Text(model={self.model_name}, use_gpu={self.use_gpu})"
+   
+    def __str__(self) -> str:
+        return f"""Speech2Text(model={self.model_name}, use_gpu={self.use_gpu})
+        {self.model_details}"""
+
+    @staticmethod
+    def list_models():
+        """
+        List all available models
+        Returns:
+            List of models
+        """
+        return Models()
+
+
+__all__ = ["Speech2Text", "Models"]
 
 if __name__ == "__main__":
-    model = Model()
-    model.load()
-    print(model.available_models)
-    print(model)
-
-    # audio_file = "data/audios/0.wav"
+    print(Models())
