@@ -260,7 +260,7 @@ class Speech2Text:
 
         if kw.get("device", None) is None and kw.get("device_map", None) is None:
             if use_gpu:
-                kw["device"] = "cuda"
+                kw["device"] = "cuda:0"
             else:
                 kw["device"] = "cpu"
 
