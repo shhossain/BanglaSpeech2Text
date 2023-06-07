@@ -1,19 +1,19 @@
 from setuptools import setup, find_packages
 
-version = '0.0.18'
+version = '0.0.19'
 description = 'An open-source offline speech-to-text package for Bangla language.'
 
 with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
 name = 'BanglaSpeech2Text'
-author = 'Sifat (shhossain)'
+author = 'sifat (shhossain)'
 email = '<hossain@gmail.com>'
 
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-keywords = ['python','speech to text','voice to text','bangla speech to text', 'bangla speech recognation', 'whisper model', 'bangla asr model', 'offline speech to text', 'offline bangla speech to text', 'offline bangla voice recognation']
+keywords = ['python','speech to text','voice to text','bangla speech to text', 'bangla speech recognation', 'whisper model', 'bangla asr model', 'offline speech to text', 'offline bangla speech to text', 'offline bangla voice recognation', 'voice recognation']
 
 classifiers = [
     'Development Status :: 3 - Alpha',
