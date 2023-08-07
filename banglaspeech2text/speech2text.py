@@ -47,7 +47,7 @@ class Model:
         if not os.path.exists(cache_dir_models):
             os.makedirs(cache_dir_models)
 
-        if cache_path is None:
+        if cache_path is None or not cache_path:
             cache_path = os.path.join(cache_dir_models, self.save_name)
         else:
             cache_path = os.path.join(str(cache_path), "models", self.save_name)

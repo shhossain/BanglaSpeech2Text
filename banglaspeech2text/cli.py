@@ -16,7 +16,7 @@ def main():
         help="input file(s) or list of files",
     )
     parser.add_argument("-gpu", action="store_true", help="use gpu", default=False)
-    parser.add_argument("-c", "--cache", type=str, help="cache directory")
+    parser.add_argument("-c", "--cache", type=str, help="cache directory", default=None)
     parser.add_argument("-o", "--output", type=str, help="output directory")
     parser.add_argument("-m", "--model", type=str, help="model name")
     parser.add_argument(
