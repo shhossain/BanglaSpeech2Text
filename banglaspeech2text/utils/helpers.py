@@ -1,5 +1,6 @@
 import re
 import os
+import numpy as np
 
 def safe_name(name,author) -> str:
     return re.sub(r'[^a-zA-Z0-9_\-\.]', '', f"{name}-/{author}")
@@ -28,5 +29,14 @@ def convert_file_size(size_bytes, decimal_places=1) -> str:
 
     return f"~{round(size, decimal_places)} {units[unit_index]}"
 
+def audiosegment_to_librosawav(audiosegment):    
+    channel_sounds = audiosegment.split_to_mono()
+    samples = [s.get_array_of_samples() for s in channel_sounds]
 
-__all__ = ["safe_name", "get_cache_dir", "get_wer_value", "convert_file_size"]
+    fp_arr = np.array(samples).T.astype(np.float32)
+    fp_arr /= np.iinfo(samples[0].typecode).max
+    fp_arr = fp_arr.reshape(-1)
+    return fp_arr
+
+
+__all__ = ["safe_name", "get_cache_dir", "get_wer_value", "convert_file_size", "audiosegment_to_librosawav"]

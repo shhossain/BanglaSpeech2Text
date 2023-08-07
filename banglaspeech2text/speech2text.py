@@ -11,6 +11,7 @@ from banglaspeech2text.utils import (
     get_model,
     get_wer_value,
     convert_file_size,
+    audiosegment_to_librosawav,
 )
 import requests
 import os
@@ -349,7 +350,7 @@ class Speech2Text:
     ) -> str:
         """
         Recognize an audio to text.
-        
+
         Args:
             audio (str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO):
                 str: Path to the audio file
@@ -394,31 +395,35 @@ class Speech2Text:
 
         if split:
             audio_data = data.tobytes()
+            raw_audio = (data * 32767).astype(np.int16)
             segment = AudioSegment(
-                audio_data,
+                raw_audio.tobytes(),
                 frame_rate=16000,
-                sample_width=data.dtype.itemsize,
-                channels=data.shape[0],
-            )
-            print("Splitting audio...", segment.duration_seconds)
-            segments = split_on_silence(
-                segment,
-                min_silence_len=min_silence_length,
-                silence_thresh=silence_threshold,
+                sample_width=raw_audio.dtype.itemsize,
+                channels=1,
             )
 
+            segments = split_on_silence(
+                segment,
+                min_silence_len=segment.dBFS - min_silence_length,
+                silence_thresh=silence_threshold,
+            )
             text = ""
             silence = AudioSegment.silent(duration=padding)
             for segment in segments:
                 segment = silence + segment + silence
-                audio_data = segment.get_array_of_samples()
-                audio_data = np.array(audio_data).astype(np.float32)
+                audio_data = audiosegment_to_librosawav(segment)
                 text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
             return text
 
         return self._pipeline_recognize(data, *args, **kw)
 
-    def __call__(self, audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO], *args,**kw) -> str:
+    def __call__(
+        self,
+        audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
+        *args,
+        **kw,
+    ) -> str:
         """
         Recognize an audio to text.
         Args:
