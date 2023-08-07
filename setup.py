@@ -61,7 +61,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'bnstt = BanglaSpeech2Text.cli:main',
+            'bnstt = banglaspeech2text.cli:main',
         ],
     },
 )

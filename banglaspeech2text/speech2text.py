@@ -346,7 +346,7 @@ class Speech2Text:
         audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
         split: bool = False,
         min_silence_length: float = 500,
-        silence_threshold: float = -16,
+        silence_threshold: float = 16,
         padding: int = 300,
         text_divider="\n",
         *args,
@@ -365,7 +365,7 @@ class Speech2Text:
 
             split (bool, optional): Split audio into chunks. Defaults to False.
                 min_silence_length (float, optional): Minimum silence length in ms. Defaults to 500
-                silence_threshold (float, optional): Silence threshold in dBFS. Defaults to -16
+                silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
 
@@ -408,9 +408,8 @@ class Speech2Text:
             segments = split_on_silence(
                 segment,
                 min_silence_len=min_silence_length,
-                silence_thresh=segment.dBFS - silence_threshold,
+                silence_thresh=segment.dBFS - abs(silence_threshold)
             )
-            print(segments)
             self.segment = segments
             
             text = ""
