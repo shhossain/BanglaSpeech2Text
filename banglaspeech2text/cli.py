@@ -7,16 +7,6 @@ def is_audio_file(filename):
     return guess_type(filename)[0].startswith("audio")
 
 
-# bnsst cli name
-# bnsst file.wav file2.wav or file.txt(file.txt is a file with list of audio files)
-# -gpu -c cache_path -o output_path -m madel_name --list list of models
-# -m model_name --info show model info
-
-# split options
-# -s split audio file
-# -sm min_silence_length (default 500ms)
-# -st silence_thresh (default -16DBFS)
-# -sp padding (default 300ms)
 
 
 def main():

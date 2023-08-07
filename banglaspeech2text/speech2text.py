@@ -387,8 +387,7 @@ class Speech2Text:
         elif isinstance(audio, np.ndarray):
             data = audio
         elif isinstance(audio, AudioSegment):
-            audio_data = audio.get_array_of_samples()
-            data = np.array(audio_data).astype(np.float32)
+            data = audiosegment_to_librosawav(audio)
         elif isinstance(audio, BytesIO):
             f = io.BytesIO(audio.getvalue())
             data, _ = librosa.load(f, sr=16000)
@@ -408,8 +407,8 @@ class Speech2Text:
 
             segments = split_on_silence(
                 segment,
-                min_silence_len=segment.dBFS - min_silence_length,
-                silence_thresh=silence_threshold,
+                min_silence_len=min_silence_length,
+                silence_thresh=segment.dBFS - silence_threshold,
             )
             text = ""
             silence = AudioSegment.silent(duration=padding)
