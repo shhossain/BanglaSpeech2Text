@@ -398,7 +398,6 @@ class Speech2Text:
             )
 
         if split:
-            audio_data = data.tobytes()
             raw_audio = (data * 32767).astype(np.int16)
             segment = AudioSegment(
                 raw_audio.tobytes(),
@@ -414,9 +413,9 @@ class Speech2Text:
             )
             text = ""
             silence = AudioSegment.silent(duration=padding)
-            for segment in segments:
-                segment = silence + segment + silence
-                audio_data = audiosegment_to_librosawav(segment)
+            for seg in segments:
+                seg = silence + seg + silence
+                audio_data = audiosegment_to_librosawav(seg)
                 text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
             return text
 
