@@ -400,7 +400,7 @@ class Speech2Text:
                 sample_width=data.dtype.itemsize,
                 channels=data.shape[0],
             )
-
+            print("Splitting audio...", segment.duration_seconds)
             segments = split_on_silence(
                 segment,
                 min_silence_len=min_silence_length,
