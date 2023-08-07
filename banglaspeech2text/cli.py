@@ -1,5 +1,4 @@
 import argparse
-from banglaspeech2text.speech2text import Speech2Text, Model
 from mimetypes import guess_type
 
 
@@ -35,9 +34,15 @@ def main():
 
     args = parser.parse_args()
 
+    from banglaspeech2text.utils import nice_model_list
+
     if args.list:
-        Speech2Text.list_models()
+        print(
+            f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"
+        )
         return
+
+    from banglaspeech2text.speech2text import Speech2Text, Model
 
     if args.info:
         model = Model(
@@ -47,7 +52,7 @@ def main():
         )
         print(model)
         return
-    
+
     if not args.input:
         parser.print_help()
         return

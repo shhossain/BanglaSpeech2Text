@@ -348,8 +348,8 @@ class Speech2Text:
         min_silence_length: float = 1000,
         silence_threshold: float = 16,
         padding: int = 300,
-        text_divider="\n",
-        generate=False,
+        text_divider:str="\n",
+        generate:bool=False,
         *args,
         **kw,
     ) -> str:
