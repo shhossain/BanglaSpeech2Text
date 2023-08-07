@@ -40,8 +40,7 @@ projects_links = {
     "Bug Tracker": "https://github.com/shhossain/BanglaSpeech2Text/issues",
 }
 
-# console scripts banglaspeech2text > cli.py > main
-# bnsst
+
 
 setup(
     name=name,
@@ -62,7 +61,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'bnsst = BanglaSpeech2Text.cli:main',
+            'bnstt = BanglaSpeech2Text.cli:main',
         ],
     },
 )
