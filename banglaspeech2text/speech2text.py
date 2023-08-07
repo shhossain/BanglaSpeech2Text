@@ -1,5 +1,5 @@
 from pprint import pformat
-from typing import Generator, Union
+from typing import Union
 import io
 import librosa
 import numpy as np
@@ -430,7 +430,7 @@ class Speech2Text:
         padding: int = 300,
         *args,
         **kw,
-    ) -> Generator[str]:
+    ):
         """
         Generate text from an audio.
 
@@ -449,8 +449,6 @@ class Speech2Text:
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
 
             Extra arguments are passed to the transformers pipeline
-        Returns:
-            Generator[str]: Generator of transcribed text
 
         Examples:
             >>> for text in stt.generate_text("audio.wav"):
