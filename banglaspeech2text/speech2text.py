@@ -393,7 +393,7 @@ class Speech2Text:
             data, _ = librosa.load(f, sr=16000)
         else:
             raise TypeError(
-                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData"
+                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO"
             )
 
         if split:
@@ -410,6 +410,9 @@ class Speech2Text:
                 min_silence_len=min_silence_length,
                 silence_thresh=segment.dBFS - silence_threshold,
             )
+            print(segments)
+            self.segment = segments
+            
             text = ""
             silence = AudioSegment.silent(duration=padding)
             for seg in segments:
