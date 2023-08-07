@@ -345,10 +345,11 @@ class Speech2Text:
         self,
         audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
         split: bool = False,
-        min_silence_length: float = 500,
+        min_silence_length: float = 1000,
         silence_threshold: float = 16,
         padding: int = 300,
         text_divider="\n",
+        generate=False,
         *args,
         **kw,
     ) -> str:
@@ -364,10 +365,11 @@ class Speech2Text:
                 AudioSegment: AudioSegment object from pydub library
 
             split (bool, optional): Split audio into chunks. Defaults to False.
-                min_silence_length (float, optional): Minimum silence length in ms. Defaults to 500
+                min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
+                generate (bool, optional): Yield text as it is generated. Defaults to False
 
             Extra arguments are passed to the transformers pipeline
         Returns:
@@ -408,19 +410,26 @@ class Speech2Text:
             segments = split_on_silence(
                 segment,
                 min_silence_len=min_silence_length,
-                silence_thresh=segment.dBFS - abs(silence_threshold)
+                silence_thresh=segment.dBFS - abs(silence_threshold),
             )
             self.segment = segments
-            
+
             text = ""
             silence = AudioSegment.silent(duration=padding)
             for seg in segments:
                 seg = silence + seg + silence
                 audio_data = audiosegment_to_librosawav(seg)
-                text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
-            return text
+                if not generate:
+                    text += (
+                        self._pipeline_recognize(audio_data, *args, **kw) + text_divider
+                    )
+                else:
+                    yield self._pipeline_recognize(audio_data, *args, **kw)
+            if not generate:
+                return text
 
-        return self._pipeline_recognize(data, *args, **kw)
+        if not generate:
+            return self._pipeline_recognize(data, *args, **kw)
 
     def __call__(
         self,
