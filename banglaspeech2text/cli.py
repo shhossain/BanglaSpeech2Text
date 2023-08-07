@@ -7,15 +7,13 @@ def is_audio_file(filename):
     return guess_type(filename)[0].startswith("audio")
 
 
-
-
 def main():
     parser = argparse.ArgumentParser(description="Bangla Speech to Text")
     parser.add_argument(
         "input",
         metavar="INPUT",
         type=str,
-        nargs="+",
+        nargs="*",
         help="input file(s) or list of files",
     )
     parser.add_argument("-gpu", action="store_true", help="use gpu", default=False)
@@ -49,6 +47,10 @@ def main():
         )
         print(model)
         return
+    
+    if not args.input:
+        parser.print_help()
+        return
 
     sst = Speech2Text(args.model, args.cache, args.gpu)
 
@@ -61,7 +63,7 @@ def main():
         else:
             with open(filename, "r") as f:
                 audio_files.extend([line.strip() for line in f])
-                    
+
     n = len(audio_files)
     for filename in audio_files:
         output += sst.recognize(
