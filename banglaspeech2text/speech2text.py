@@ -275,6 +275,10 @@ class Speech2Text:
         self.use_gpu = use_gpu
 
     @property
+    def cache_path(self) -> str:
+        return self.model.cache_path
+
+    @property
     def model_name(self) -> str:
         return self.model.name
 
