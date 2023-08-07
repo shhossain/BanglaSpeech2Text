@@ -5,7 +5,7 @@ from mimetypes import guess_type
 def is_audio_file(filename):
     return guess_type(filename)[0].startswith("audio")
 
-def use_mic(stt, mic):
+def use_mic(stt):
     import speech_recognition as sr
 
     r = sr.Recognizer()
@@ -77,7 +77,7 @@ def main():
         print(model)
         return
 
-    if not args.input:
+    if not args.input and not args.mic:
         parser.print_help()
         return
 
