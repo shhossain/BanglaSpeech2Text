@@ -75,7 +75,7 @@ def main():
             filename,
             split=args.split,
             min_silence_length=args.min_silence_length,
-            silence_thresh=args.silence_thresh,
+            silence_threshold=args.silence_thresh,
             padding=args.padding,
         )
         if n > 1:
