@@ -1,5 +1,5 @@
 from pprint import pformat
-from typing import Union
+from typing import Generator, Union
 import io
 import librosa
 import numpy as np
@@ -348,8 +348,7 @@ class Speech2Text:
         min_silence_length: float = 1000,
         silence_threshold: float = 16,
         padding: int = 300,
-        text_divider:str="\n",
-        generate:bool=False,
+        text_divider: str = "\n",
         *args,
         **kw,
     ) -> str:
@@ -369,7 +368,6 @@ class Speech2Text:
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
-                generate (bool, optional): Yield text as it is generated. Defaults to False
 
             Extra arguments are passed to the transformers pipeline
         Returns:
@@ -412,24 +410,97 @@ class Speech2Text:
                 min_silence_len=min_silence_length,
                 silence_thresh=segment.dBFS - abs(silence_threshold),
             )
-            self.segment = segments
 
             text = ""
             silence = AudioSegment.silent(duration=padding)
             for seg in segments:
                 seg = silence + seg + silence
                 audio_data = audiosegment_to_librosawav(seg)
-                if not generate:
-                    text += (
-                        self._pipeline_recognize(audio_data, *args, **kw) + text_divider
-                    )
-                else:
-                    yield self._pipeline_recognize(audio_data, *args, **kw)
-            if not generate:
-                return text
+                text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
 
-        if not generate:
-            return self._pipeline_recognize(data, *args, **kw)
+            return text
+        return self._pipeline_recognize(data, *args, **kw)
+
+    def generate_text(
+        self,
+        audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
+        split: bool = True,
+        min_silence_length: float = 1000,
+        silence_threshold: float = 16,
+        padding: int = 300,
+        *args,
+        **kw,
+    ) -> Generator[str]:
+        """
+        Generate text from an audio.
+
+        Args:
+            audio (str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO):
+                str: Path to the audio file
+                bytes or BytesIO: Audio data in bytes
+                np.ndarray: Audio data in numpy array
+                AudioData: AudioData object from SpeechRecognition library
+                AudioSegment: AudioSegment object from pydub library
+
+            split (bool, optional): Split audio into chunks. Defaults to True.
+                min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
+                silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
+                padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
+                text_divider (str, optional): Divide output text by this string. Defaults to newline
+
+            Extra arguments are passed to the transformers pipeline
+        Returns:
+            Generator[str]: Generator of transcribed text
+
+        Examples:
+            >>> for text in stt.generate_text("audio.wav"):
+            >>>     print(text)
+        """
+
+        data: np.ndarray = np.array([])
+        if isinstance(audio, AudioData):
+            wav_data = audio.get_wav_data(convert_rate=16000)
+            f = io.BytesIO(wav_data)
+            data, _ = librosa.load(f, sr=16000)
+        elif isinstance(audio, str):
+            data, _ = librosa.load(audio, sr=16000)
+        elif isinstance(audio, bytes):
+            f = io.BytesIO(audio)
+            data, _ = librosa.load(f, sr=16000)
+        elif isinstance(audio, np.ndarray):
+            data = audio
+        elif isinstance(audio, AudioSegment):
+            data = audiosegment_to_librosawav(audio)
+        elif isinstance(audio, BytesIO):
+            f = io.BytesIO(audio.getvalue())
+            data, _ = librosa.load(f, sr=16000)
+        else:
+            raise TypeError(
+                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO"
+            )
+
+        if split:
+            raw_audio = (data * 32767).astype(np.int16)
+            segment = AudioSegment(
+                raw_audio.tobytes(),
+                frame_rate=16000,
+                sample_width=raw_audio.dtype.itemsize,
+                channels=1,
+            )
+
+            segments = split_on_silence(
+                segment,
+                min_silence_len=min_silence_length,
+                silence_thresh=segment.dBFS - abs(silence_threshold),
+            )
+
+            silence = AudioSegment.silent(duration=padding)
+            for seg in segments:
+                seg = silence + seg + silence
+                audio_data = audiosegment_to_librosawav(seg)
+                yield self._pipeline_recognize(audio_data, *args, **kw)
+
+        yield self._pipeline_recognize(data, *args, **kw)
 
     def __call__(
         self,
