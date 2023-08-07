@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.0.19'
+version = '1.0.1'
 description = 'An open-source offline speech-to-text package for Bangla language.'
 
 with open('README.md', encoding='utf-8') as f:
@@ -8,7 +8,6 @@ with open('README.md', encoding='utf-8') as f:
 
 name = 'BanglaSpeech2Text'
 author = 'sifat (shhossain)'
-email = '<hossain@gmail.com>'
 
 with open('requirements.txt') as f:
     required = f.read().splitlines()
@@ -49,7 +48,6 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     author=author,
-    author_email=email,
     url="https://github.com/shhossain/BanglaSpeech2Text",
     project_urls=projects_links,
     packages=find_packages(),
