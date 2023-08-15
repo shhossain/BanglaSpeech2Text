@@ -54,7 +54,7 @@ setup(
     install_requires=required,
     keywords=keywords,
     classifiers=classifiers,
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     include_package_data=True,
     zip_safe=False,
     entry_points={
