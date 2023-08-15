@@ -15,7 +15,7 @@ BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla lang
 
 ## Pre-requisites
 
-- Python 3.6 or higher
+- Python 3.7 or higher
 
 ## Test it in Google Colab
 
