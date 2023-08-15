@@ -1,12 +1,12 @@
 {
   "tiny": [
     {
-      "url": "https://huggingface.co/Rakib/whisper-tiny-bn",
+      "url": "https://huggingface.co/ehzawad/whisper-tiny-bn",
       "name": "whisper-tiny-bn",
       "type": "tiny",
       "license": "apache-2.0",
-      "author": "Rakib",
-      "wer": 60,
+      "author": "Emrul Hasan Zawad",
+      "wer": 75.4095,
       "size": "~151 MB"
     }
   ],

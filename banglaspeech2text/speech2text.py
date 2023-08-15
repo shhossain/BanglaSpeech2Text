@@ -229,6 +229,9 @@ class Model:
 
 
 class Models:
+    def __init__(self) -> None:
+        self.models = all_models
+    
     def __str__(self) -> str:
         return f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"
 
@@ -281,6 +284,10 @@ class Speech2Text:
     @property
     def model_name(self) -> str:
         return self.model.name
+    
+    @property
+    def model_author(self) -> str:
+        return self.model.author
 
     @property
     def model_type(self) -> str:
@@ -536,7 +543,7 @@ class Speech2Text:
         {self.model_details}"""
 
     @staticmethod
-    def list_models():
+    def list_models() -> Models:
         """
         List all available models
         Returns:

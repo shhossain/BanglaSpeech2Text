@@ -15,7 +15,7 @@ BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla lang
 
 ## Pre-requisites
 
-- Python 3.6+
+- Python 3.6 or higher
 
 ## Test it in Google Colab
 
@@ -55,14 +55,14 @@ print(transcription)
 
 ### For longer audio files (As different models have different max audio length, so you can use the following methods to transcribe longer audio files)
 
-For longer audio files, you can use the `generate_text` or `recognize` method. It will return a generator object. Here's an example:
+For longer audio files, you can use the `generate_text` or `recognize` method. Here's an example:
 
 ```python
-for text in stt.generate_text("audio.wav"):
+for text in stt.generate_text("audio.wav"): # it will generate text as the chunks are processed
     print(text)
 
 # or
-text = stt.recognize("audio.wav", split=True) # it will use split_on_silence from pydub to split the audio
+text = stt.recognize("audio.wav", split=True) # it will use split_on_silence from pydub to split the audio and transcribe it
 print(text)
 
 # or
