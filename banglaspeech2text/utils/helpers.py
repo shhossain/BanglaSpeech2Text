@@ -9,6 +9,9 @@ import os
 def get_cache_dir() -> str:
     return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
+def is_root() -> bool:
+    return os.geteuid() == 0
+
 def ffmpeg_installed() -> bool:
     check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
     if os.path.exists(check_path):
@@ -56,7 +59,9 @@ def download_ffmpeg() -> None:
                 "Error while installing ffmpeg: ffmpeg.exe not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        elevate.elevate(show_console=False)
+        if not is_root():
+            elevate.elevate(show_console=False)
+            
         cmd = [
             "setx",
             "PATH",
@@ -87,7 +92,8 @@ def download_ffmpeg() -> None:
             )
 
         # install ffmpeg
-        elevate.elevate(graphical=False)
+        if not is_root():
+            elevate.elevate(graphical=False)
         cmd = [package_manager, "install", "-y", "ffmpeg"]
 
         try:
