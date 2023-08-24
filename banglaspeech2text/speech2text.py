@@ -1,8 +1,4 @@
-from pprint import pformat
-from typing import Optional, Union
-import io
-import warnings
-import numpy as np
+
 from banglaspeech2text.utils import (
     all_models,
     nice_model_list,
@@ -13,7 +9,20 @@ from banglaspeech2text.utils import (
     convert_file_size,
     seg_to_bytes,
     split_audio,
+    ffmpeg_installed,
+    download_ffmpeg
 )
+
+if not ffmpeg_installed():
+    download_ffmpeg()
+
+
+from pprint import pformat
+from typing import Optional, Union
+import io
+import warnings
+import numpy as np
+
 import requests
 import os
 from speech_recognition import AudioData

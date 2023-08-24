@@ -97,8 +97,6 @@ def download_ffmpeg() -> None:
             )
 
 
-if not ffmpeg_installed():
-    download_ffmpeg()
 
 
 def get_wer_value(text, max_wer=1000) -> float:
