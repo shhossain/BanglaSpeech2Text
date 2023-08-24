@@ -20,14 +20,8 @@ def is_root() -> bool:
 
 
 def ffmpeg_installed() -> bool:
-    check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
-    if os.path.exists(check_path):
-        return True
-
     try:
         subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL)
-        with open(check_path, "w") as f:
-            f.write("1")
         return True
     except FileNotFoundError:
         return False
