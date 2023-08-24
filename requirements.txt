@@ -4,4 +4,4 @@ SpeechRecognition>=3.8.1
 transformers>=4.1.1
 pydub<=0.24.1
 torch
-librosa
+elevate>=0.1.3
