@@ -5,12 +5,17 @@ from tqdm.auto import tqdm
 import requests
 import zipfile
 import os
+import ctypes
 
 def get_cache_dir() -> str:
     return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
 def is_root() -> bool:
-    return os.geteuid() == 0
+    if platform.system() == "Windows":
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    else:
+        return os.geteuid() == 0 # type: ignore
+    
 
 def ffmpeg_installed() -> bool:
     check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
