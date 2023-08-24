@@ -1,4 +1,3 @@
-librosa
 numpy
 requests>=2.0.0
 SpeechRecognition>=3.8.1
