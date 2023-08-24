@@ -1,12 +1,3 @@
-import re
-import os
-import shutil
-from typing import Union
-import warnings
-import numpy as np
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
-import io
 import subprocess
 import elevate
 import platform
@@ -14,13 +5,6 @@ from tqdm.auto import tqdm
 import requests
 import zipfile
 
-
-def safe_name(name, author) -> str:
-    return re.sub(r"[^a-zA-Z0-9_\-\.]", "", f"{name}-/{author}")
-
-
-def get_cache_dir() -> str:
-    return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
 
 def ffmpeg_installed() -> bool:
@@ -58,11 +42,23 @@ def download_ffmpeg() -> None:
             zip_ref.extractall(ffmpeg_path)
         os.remove(path)
 
+        # recursively search for ffmpeg.exe
+        bin_path = None
+        for root, dirs, files in os.walk(ffmpeg_path):
+            if "ffmpeg.exe" in files:
+                bin_path = root
+                break
+
+        if bin_path is None:
+            raise RuntimeError(
+                "Error while installing ffmpeg: ffmpeg.exe not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
+            )
+
         elevate.elevate(show_console=False)
         cmd = [
             "setx",
             "PATH",
-            f"%PATH%;{ffmpeg_path}",
+            f"%PATH%;{bin_path}",
         ]
         try:
             subprocess.run(cmd, stdout=subprocess.DEVNULL)
@@ -70,6 +66,9 @@ def download_ffmpeg() -> None:
             raise RuntimeError(
                 f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
+
+        # update current session
+        os.environ["PATH"] += f";{bin_path}"
 
     else:
         # check for active package managers
@@ -96,7 +95,35 @@ def download_ffmpeg() -> None:
                 f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
+        # update current by sourcing .bashrc
+        cmd = ["source", "~/.bashrc"]
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL)
+        except Exception as e:
+            raise RuntimeError(f"Restart your terminal to use this package.")
 
+
+if ffmpeg_installed():
+    download_ffmpeg()
+
+
+import re
+import os
+import shutil
+from typing import Union
+import warnings
+import numpy as np
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
+import io
+
+
+def safe_name(name, author) -> str:
+    return re.sub(r"[^a-zA-Z0-9_\-\.]", "", f"{name}-/{author}")
+
+
+def get_cache_dir() -> str:
+    return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
 
 def get_wer_value(text, max_wer=1000) -> float:

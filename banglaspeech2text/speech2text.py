@@ -1,4 +1,3 @@
-
 from banglaspeech2text.utils import (
     all_models,
     nice_model_list,
@@ -9,12 +8,7 @@ from banglaspeech2text.utils import (
     convert_file_size,
     seg_to_bytes,
     split_audio,
-    ffmpeg_installed,
-    download_ffmpeg
 )
-
-if not ffmpeg_installed():
-    download_ffmpeg()
 
 
 from pprint import pformat
