@@ -339,7 +339,7 @@ class Speech2Text:
     def pipeline(self) -> transformers.Pipeline:
         return self.model.pipeline
 
-    def reload_model_details(self, force_reload=False) -> None:
+    def reload_model_details(self, force_reload=True) -> None:
         """
         Reload model details from huggingface.co
         Args:
@@ -368,8 +368,8 @@ class Speech2Text:
         audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
         split,
         convert_func=None,
-    ) -> Union[bytes, np.ndarray, AudioSegment]:
-        data: Union[np.ndarray, bytes, AudioSegment] = None  # type: ignore
+    ) -> Union[bytes, np.ndarray, AudioSegment, str]:
+        data: Union[np.ndarray, bytes, AudioSegment, str] = None  # type: ignore
 
         if convert_func is not None:
             audio = convert_func(audio)
@@ -378,10 +378,12 @@ class Speech2Text:
             wav_data = audio.get_wav_data(convert_rate=16000)
             f = io.BytesIO(wav_data)
             data = f.getvalue()
+
         elif isinstance(audio, str):
-            data = AudioSegment.from_file(audio)  # type: ignore
             if not split:
-                data = seg_to_bytes(data)
+                data = audio
+            else:
+                data = AudioSegment.from_file(audio)
 
         elif isinstance(audio, np.ndarray):
             data = audio
@@ -393,6 +395,7 @@ class Speech2Text:
 
         elif isinstance(audio, BytesIO):
             data = audio.getvalue()
+
         else:
             raise TypeError(
                 "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO or provide a convert_func"
@@ -490,8 +493,7 @@ class Speech2Text:
 
         for seg in segments:
             yield self._pipeline_recognize(seg_to_bytes(seg), *args, **kw)
-            
-    
+
     def generate_text(self, *args, **kw):
         warnings.warn("generate_text is deprecated. Use generate instead")
         return self.generate(*args, **kw)
