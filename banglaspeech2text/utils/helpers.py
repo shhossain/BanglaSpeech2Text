@@ -6,6 +6,8 @@ import requests
 import zipfile
 import os
 
+def get_cache_dir() -> str:
+    return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
 def ffmpeg_installed() -> bool:
     check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
@@ -121,8 +123,7 @@ def safe_name(name, author) -> str:
     return re.sub(r"[^a-zA-Z0-9_\-\.]", "", f"{name}-/{author}")
 
 
-def get_cache_dir() -> str:
-    return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
+
 
 
 def get_wer_value(text, max_wer=1000) -> float:
