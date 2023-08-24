@@ -58,7 +58,7 @@ def download_ffmpeg() -> None:
             zip_ref.extractall(ffmpeg_path)
         os.remove(path)
 
-        elevate.elevate(graphical=False)
+        elevate.elevate(show_console=False)
         cmd = [
             "setx",
             "PATH",
