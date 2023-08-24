@@ -29,10 +29,17 @@ class Model:
     def __init__(self, name: str, cache_path: str = None, **kw):  # type: ignore
         self.kw = kw
         self.raw_name = name
+        local = False
         if "/" in name:
-            self.name = name
-            self.author = name.split("/")[0]
-            self.save_name = safe_name(name.split("/")[1], self.author)
+            if not os.path.exists(name):
+                self.name = name
+                self.author = name.split("/")[0]
+                self.save_name = safe_name(name.split("/")[1], self.author)
+            else:
+                self.name = name
+                self.author = "local"
+                self.save_name = name
+                local = True
         else:
             bst = get_model(name)
             self.name = bst["name"]
@@ -47,10 +54,13 @@ class Model:
         if not os.path.exists(cache_dir_models):
             os.makedirs(cache_dir_models)
 
-        if cache_path is None or not cache_path:
-            cache_path = os.path.join(cache_dir_models, self.save_name)
+        if not local:
+            if cache_path is None or not cache_path:
+                cache_path = os.path.join(cache_dir_models, self.save_name)
+            else:
+                cache_path = os.path.join(str(cache_path), "models", self.save_name)
         else:
-            cache_path = os.path.join(str(cache_path), "models", self.save_name)
+            cache_path = name
 
         # check if model is downloaded
         self.cache_path = cache_path
@@ -231,7 +241,7 @@ class Model:
 class Models:
     def __init__(self) -> None:
         self.models = all_models
-    
+
     def __str__(self) -> str:
         return f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"
 
@@ -284,7 +294,7 @@ class Speech2Text:
     @property
     def model_name(self) -> str:
         return self.model.name
-    
+
     @property
     def model_author(self) -> str:
         return self.model.author
@@ -381,7 +391,7 @@ class Speech2Text:
             str: Transcribed text
         """
 
-        data: np.ndarray = np.array([])
+        data: Union[np.ndarray, bytes] = np.array([])
         if isinstance(audio, AudioData):
             wav_data = audio.get_wav_data(convert_rate=16000)
             f = io.BytesIO(wav_data)
@@ -394,7 +404,8 @@ class Speech2Text:
         elif isinstance(audio, np.ndarray):
             data = audio
         elif isinstance(audio, AudioSegment):
-            data = audiosegment_to_librosawav(audio)
+            audio = audio.set_channels(1).set_frame_rate(16000)
+            data = audio.raw_data
         elif isinstance(audio, BytesIO):
             f = io.BytesIO(audio.getvalue())
             data, _ = librosa.load(f, sr=16000)
@@ -426,6 +437,7 @@ class Speech2Text:
                 text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
 
             return text
+
         return self._pipeline_recognize(data, *args, **kw)
 
     def generate_text(
