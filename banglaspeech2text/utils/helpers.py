@@ -4,7 +4,7 @@ import platform
 from tqdm.auto import tqdm
 import requests
 import zipfile
-
+import os
 
 
 def ffmpeg_installed() -> bool:
@@ -108,7 +108,6 @@ if ffmpeg_installed():
 
 
 import re
-import os
 import shutil
 from typing import Union
 import warnings
