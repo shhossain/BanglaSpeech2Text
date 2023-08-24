@@ -7,15 +7,17 @@ import zipfile
 import os
 import ctypes
 
+
 def get_cache_dir() -> str:
     return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
+
 
 def is_root() -> bool:
     if platform.system() == "Windows":
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
     else:
-        return os.geteuid() == 0 # type: ignore
-    
+        return os.geteuid() == 0  # type: ignore
+
 
 def ffmpeg_installed() -> bool:
     check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
@@ -66,7 +68,7 @@ def download_ffmpeg() -> None:
 
         if not is_root():
             elevate.elevate(show_console=False)
-            
+
         cmd = [
             "setx",
             "PATH",
@@ -108,12 +110,17 @@ def download_ffmpeg() -> None:
                 f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        # update current by sourcing .bashrc
-        cmd = ["source", "~/.bashrc"]
-        try:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL)
-        except Exception as e:
-            raise RuntimeError(f"Restart your terminal to use this package.")
+        # update current session
+        possible_paths = [
+            "/usr/bin/ffmpeg",
+            "/usr/local/bin/ffmpeg",
+            "/snap/bin/ffmpeg",
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                os.environ["PATH"] += f":{path}"
+                break
 
 
 if ffmpeg_installed():
@@ -132,9 +139,6 @@ import io
 
 def safe_name(name, author) -> str:
     return re.sub(r"[^a-zA-Z0-9_\-\.]", "", f"{name}-/{author}")
-
-
-
 
 
 def get_wer_value(text, max_wer=1000) -> float:
