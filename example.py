@@ -14,8 +14,8 @@ transcription = s2t.recognize("test.wav")
 # Let's see what we got
 print(transcription)
 
-# Long audio files can be transcribed using the generate_text method
-for result in s2t.generate_text("test2.wav"):
+# Long audio files can be transcribed using the generate method
+for result in s2t.generate("test2.wav"):
     print(result)
 
 
