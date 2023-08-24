@@ -1,11 +1,18 @@
 import re
 import os
+import shutil
 from typing import Union
 import warnings
 import numpy as np
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 import io
+import subprocess
+import elevate
+import platform
+from tqdm.auto import tqdm
+import requests
+import zipfile
 
 
 def safe_name(name, author) -> str:
@@ -14,6 +21,84 @@ def safe_name(name, author) -> str:
 
 def get_cache_dir() -> str:
     return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
+
+
+def ffmpeg_installed() -> bool:
+    check_path = os.path.join(get_cache_dir(), "ffmpeg_installed")
+    if os.path.exists(check_path):
+        return True
+
+    try:
+        subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL)
+        with open(check_path, "w") as f:
+            f.write("1")
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def download_ffmpeg() -> None:
+    if platform.system() == "Windows":
+        url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+        cache_dir = get_cache_dir()
+        path = os.path.join(cache_dir, "ffmpeg-release-essentials.zip")
+        ffmpeg_path = os.path.join(cache_dir, "ffmpeg-release-essentials")
+
+        response = requests.get(url, stream=True)
+        total_size_in_bytes = int(response.headers.get("content-length", 0))
+        block_size = 1024 * 1024  # 1 MB
+        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        with open(path, "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
+
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            zip_ref.extractall(ffmpeg_path)
+        os.remove(path)
+
+        elevate.elevate(graphical=False)
+        cmd = [
+            "setx",
+            "PATH",
+            f"%PATH%;{ffmpeg_path}",
+        ]
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL)
+        except Exception as e:
+            raise RuntimeError(
+                f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
+            )
+
+    else:
+        # check for active package managers
+        package_managers = ["apt-get", "brew", "dnf", "yum", "zypper", "pacman"]
+        package_manager = None
+        for pm in package_managers:
+            if shutil.which(pm):
+                package_manager = pm
+                break
+
+        if package_manager is None:
+            raise RuntimeError(
+                "No package manager found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
+            )
+
+        # install ffmpeg
+        elevate.elevate(graphical=False)
+        cmd = [package_manager, "install", "-y", "ffmpeg"]
+
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL)
+        except Exception as e:
+            raise RuntimeError(
+                f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
+            )
+
+
+if not ffmpeg_installed():
+    download_ffmpeg()
 
 
 def get_wer_value(text, max_wer=1000) -> float:
