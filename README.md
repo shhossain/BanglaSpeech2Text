@@ -71,6 +71,25 @@ text = stt.recognize("audio.wav", split=True, min_silence_length=1000, silence_t
 print(text)
 ```
 
+## Multiple Audio Formats
+
+BanglaSpeech2Text supports the following audio formats for input:
+
+- File Formats: WAV, MP3, FLAC, and all formats supported by FFmpeg.
+- Bytes: Raw audio data in byte format.
+- Numpy Array: Numpy array representing audio data, preferably obtained using librosa.load.
+- AudioData: Audio data obtained from the speech_recognition library.
+- AudioSegment: Audio segment objects from the pydub library.
+- BytesIO: Audio data provided through BytesIO objects from the io module.
+- Path: Pathlib Path object pointing to an audio file.
+
+Here's an example:
+
+```python
+transcription = stt.recognize("audio.mp3")
+print(transcription)
+```
+
 ### Use with SpeechRecognition
 
 You can use [SpeechRecognition](https://pypi.org/project/SpeechRecognition/) package to get audio from microphone and transcribe it. Here's an example:
@@ -127,7 +146,7 @@ stt = Speech2Text(model="base",use_gpu=True)
 
 # You can also open the url and check it in mobile
 gr.Interface(
-    fn=stt.transcribe,
+    fn=stt.recognize,
     inputs=gr.Audio(source="microphone", type="filepath"),
     outputs="text").launch(share=True)
 ```

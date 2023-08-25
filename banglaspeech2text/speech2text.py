@@ -388,7 +388,6 @@ class Speech2Text:
                 data = audio
             else:
                 data = AudioSegment.from_file(audio)
-                
 
         elif isinstance(audio, np.ndarray):
             data = audio
@@ -400,13 +399,23 @@ class Speech2Text:
 
         elif isinstance(audio, BytesIO):
             data = audio.getvalue()
-        
+
         elif isinstance(audio, bytes):
             data = audio
 
         else:
+            try:
+                path = str(audio)
+                if os.path.exists(path):
+                    if not split:
+                        data = path
+                    else:
+                        data = AudioSegment.from_file(path)
+            except Exception as e:
+                pass
+
             raise TypeError(
-                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO or provide a convert_func"
+                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO, Path like object or provide a convert_func"
             )
 
         return data
