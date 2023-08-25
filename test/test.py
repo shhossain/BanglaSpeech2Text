@@ -80,6 +80,7 @@ class TestBanglaSpeech2Text(unittest.TestCase):
         with open(TEST_WAV, "rb") as f:
             audio = io.BytesIO(f.read())
         text = self.speech2text(audio)
+        audio.close()
         self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
 
     def test_with_bytes(self):
