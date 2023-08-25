@@ -135,7 +135,9 @@ def download_ffmpeg() -> None:
             elevate.elevate(graphical=False)
 
         pbar.update(1)
-        cmd = [package_manager, "install", "-y", "ffmpeg"]
+        cmd = [package_manager, "install", "ffmpeg", "-y"]
+        if package_manager == "brew":
+            cmd.pop()
 
         try:
             subprocess.run(cmd, stdout=subprocess.DEVNULL)
