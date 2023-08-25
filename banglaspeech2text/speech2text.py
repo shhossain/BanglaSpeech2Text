@@ -1,8 +1,3 @@
-from pprint import pformat
-from typing import Union
-import io
-import librosa
-import numpy as np
 from banglaspeech2text.utils import (
     all_models,
     nice_model_list,
@@ -11,8 +6,17 @@ from banglaspeech2text.utils import (
     get_model,
     get_wer_value,
     convert_file_size,
-    audiosegment_to_librosawav,
+    seg_to_bytes,
+    split_audio,
 )
+
+
+from pprint import pformat
+from typing import Optional, Union
+import io
+import warnings
+import numpy as np
+
 import requests
 import os
 from speech_recognition import AudioData
@@ -21,18 +25,24 @@ import re
 import yaml
 import json
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
 from io import BytesIO
 
 
 class Model:
-    def __init__(self, name: str, cache_path: str = None, **kw):  # type: ignore
+    def __init__(self, name: str, cache_path: Optional[str] = None, **kw):
         self.kw = kw
         self.raw_name = name
+        local = False
         if "/" in name:
-            self.name = name
-            self.author = name.split("/")[0]
-            self.save_name = safe_name(name.split("/")[1], self.author)
+            if not os.path.exists(name):
+                self.name = name
+                self.author = name.split("/")[0]
+                self.save_name = safe_name(name.split("/")[1], self.author)
+            else:
+                self.name = name
+                self.author = "local"
+                self.save_name = name
+                local = True
         else:
             bst = get_model(name)
             self.name = bst["name"]
@@ -47,10 +57,13 @@ class Model:
         if not os.path.exists(cache_dir_models):
             os.makedirs(cache_dir_models)
 
-        if cache_path is None or not cache_path:
-            cache_path = os.path.join(cache_dir_models, self.save_name)
+        if not local:
+            if cache_path is None or not cache_path:
+                cache_path = os.path.join(cache_dir_models, self.save_name)
+            else:
+                cache_path = os.path.join(str(cache_path), "models", self.save_name)
         else:
-            cache_path = os.path.join(str(cache_path), "models", self.save_name)
+            cache_path = name
 
         # check if model is downloaded
         self.cache_path = cache_path
@@ -197,7 +210,7 @@ class Model:
         return self._lang
 
     def __repr__(self):
-        return f"ModelDict(name={self.name}, type={self.type})"
+        return f"Model(name={self.name}, type={self.type})"
 
     def __str__(self):
         txt = f"Model: {self.name}\n"
@@ -231,7 +244,7 @@ class Model:
 class Models:
     def __init__(self) -> None:
         self.models = all_models
-    
+
     def __str__(self) -> str:
         return f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"
 
@@ -248,7 +261,11 @@ class Models:
 
 class Speech2Text:
     def __init__(
-        self, model: str = "base", cache_path: str = None, use_gpu: bool = False, **kw
+        self,
+        model: str = "base",
+        cache_path: Optional[str] = None,
+        use_gpu: bool = False,
+        **kw,
     ):  # type: ignore
         """
         Speech to text model
@@ -284,7 +301,7 @@ class Speech2Text:
     @property
     def model_name(self) -> str:
         return self.model.name
-    
+
     @property
     def model_author(self) -> str:
         return self.model.author
@@ -325,7 +342,7 @@ class Speech2Text:
     def pipeline(self) -> transformers.Pipeline:
         return self.model.pipeline
 
-    def reload_model_details(self, force_reload=False) -> None:
+    def reload_model_details(self, force_reload=True) -> None:
         """
         Reload model details from huggingface.co
         Args:
@@ -334,7 +351,7 @@ class Speech2Text:
         self.model.load_details(force_reload=force_reload)
 
     def _pipeline_recognize(self, audio, *args, **kw) -> str:
-        return self.pipeline(audio, *args, **kw)["text"]
+        return self.pipeline(audio, *args, **kw)["text"]  # type: ignore
 
     def transcribe(self, audio_path: str, *args, **kw) -> str:
         """
@@ -346,7 +363,53 @@ class Speech2Text:
         Returns:
             str: Transcribed text
         """
+        warnings.warn("transcribe is deprecated. Use recognize instead")
         return self.recognize(audio_path, *args, **kw)
+
+    def _preprocess(
+        self,
+        audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
+        split,
+        convert_func=None,
+    ) -> Union[bytes, np.ndarray, AudioSegment, str]:
+        data: Union[np.ndarray, bytes, AudioSegment, str] = None  # type: ignore
+
+        if convert_func is not None:
+            audio = convert_func(audio)
+
+        if isinstance(audio, AudioData):
+            wav_data = audio.get_wav_data(convert_rate=16000)
+            f = io.BytesIO(wav_data)
+            data = f.getvalue()
+            f.close()
+
+        elif isinstance(audio, str):
+            if not split:
+                data = audio
+            else:
+                data = AudioSegment.from_file(audio)
+                
+
+        elif isinstance(audio, np.ndarray):
+            data = audio
+
+        elif isinstance(audio, AudioSegment):
+            data = audio
+            if not split:
+                data = seg_to_bytes(data)
+
+        elif isinstance(audio, BytesIO):
+            data = audio.getvalue()
+        
+        elif isinstance(audio, bytes):
+            data = audio
+
+        else:
+            raise TypeError(
+                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO or provide a convert_func"
+            )
+
+        return data
 
     def recognize(
         self,
@@ -356,6 +419,7 @@ class Speech2Text:
         silence_threshold: float = 16,
         padding: int = 300,
         text_divider: str = "\n",
+        convert_func=None,
         *args,
         **kw,
     ) -> str:
@@ -376,65 +440,33 @@ class Speech2Text:
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
 
+            convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
+
             Extra arguments are passed to the transformers pipeline
         Returns:
             str: Transcribed text
         """
 
-        data: np.ndarray = np.array([])
-        if isinstance(audio, AudioData):
-            wav_data = audio.get_wav_data(convert_rate=16000)
-            f = io.BytesIO(wav_data)
-            data, _ = librosa.load(f, sr=16000)
-        elif isinstance(audio, str):
-            data, _ = librosa.load(audio, sr=16000)
-        elif isinstance(audio, bytes):
-            f = io.BytesIO(audio)
-            data, _ = librosa.load(f, sr=16000)
-        elif isinstance(audio, np.ndarray):
-            data = audio
-        elif isinstance(audio, AudioSegment):
-            data = audiosegment_to_librosawav(audio)
-        elif isinstance(audio, BytesIO):
-            f = io.BytesIO(audio.getvalue())
-            data, _ = librosa.load(f, sr=16000)
-        else:
-            raise TypeError(
-                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO"
-            )
-
+        data = self._preprocess(audio, split, convert_func)
         if split:
-            raw_audio = (data * 32767).astype(np.int16)
-            segment = AudioSegment(
-                raw_audio.tobytes(),
-                frame_rate=16000,
-                sample_width=raw_audio.dtype.itemsize,
-                channels=1,
-            )
-
-            segments = split_on_silence(
-                segment,
-                min_silence_len=min_silence_length,
-                silence_thresh=segment.dBFS - abs(silence_threshold),
-            )
-
+            segments = split_audio(data, min_silence_length, silence_threshold, padding)
             text = ""
-            silence = AudioSegment.silent(duration=padding)
             for seg in segments:
-                seg = silence + seg + silence
-                audio_data = audiosegment_to_librosawav(seg)
-                text += self._pipeline_recognize(audio_data, *args, **kw) + text_divider
-
+                text += (
+                    self._pipeline_recognize(seg_to_bytes(seg), *args, **kw)
+                    + text_divider
+                )
             return text
+
         return self._pipeline_recognize(data, *args, **kw)
 
-    def generate_text(
+    def generate(
         self,
         audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
-        split: bool = True,
         min_silence_length: float = 1000,
         silence_threshold: float = 16,
         padding: int = 300,
+        convert_func=None,
         *args,
         **kw,
     ):
@@ -453,7 +485,8 @@ class Speech2Text:
                 min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
-                text_divider (str, optional): Divide output text by this string. Defaults to newline
+
+            convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
 
             Extra arguments are passed to the transformers pipeline
 
@@ -462,50 +495,15 @@ class Speech2Text:
             >>>     print(text)
         """
 
-        data: np.ndarray = np.array([])
-        if isinstance(audio, AudioData):
-            wav_data = audio.get_wav_data(convert_rate=16000)
-            f = io.BytesIO(wav_data)
-            data, _ = librosa.load(f, sr=16000)
-        elif isinstance(audio, str):
-            data, _ = librosa.load(audio, sr=16000)
-        elif isinstance(audio, bytes):
-            f = io.BytesIO(audio)
-            data, _ = librosa.load(f, sr=16000)
-        elif isinstance(audio, np.ndarray):
-            data = audio
-        elif isinstance(audio, AudioSegment):
-            data = audiosegment_to_librosawav(audio)
-        elif isinstance(audio, BytesIO):
-            f = io.BytesIO(audio.getvalue())
-            data, _ = librosa.load(f, sr=16000)
-        else:
-            raise TypeError(
-                "Invalid audio type. Must be one of str, bytes, np.ndarray, AudioData, AudioSegment, BytesIO"
-            )
+        data = self._preprocess(audio, True, convert_func)
+        segments = split_audio(data, min_silence_length, silence_threshold, padding)
 
-        if split:
-            raw_audio = (data * 32767).astype(np.int16)
-            segment = AudioSegment(
-                raw_audio.tobytes(),
-                frame_rate=16000,
-                sample_width=raw_audio.dtype.itemsize,
-                channels=1,
-            )
+        for seg in segments:
+            yield self._pipeline_recognize(seg_to_bytes(seg), *args, **kw)
 
-            segments = split_on_silence(
-                segment,
-                min_silence_len=min_silence_length,
-                silence_thresh=segment.dBFS - abs(silence_threshold),
-            )
-
-            silence = AudioSegment.silent(duration=padding)
-            for seg in segments:
-                seg = silence + seg + silence
-                audio_data = audiosegment_to_librosawav(seg)
-                yield self._pipeline_recognize(audio_data, *args, **kw)
-
-        yield self._pipeline_recognize(data, *args, **kw)
+    def generate_text(self, *args, **kw):
+        warnings.warn("generate_text is deprecated. Use generate instead")
+        return self.generate(*args, **kw)
 
     def __call__(
         self,
@@ -528,6 +526,8 @@ class Speech2Text:
                 silence_threshold (float, optional): Silence threshold in dBFS. Defaults to -16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
                 text_divider (str, optional): Divide output text by this string. Defaults to newline
+
+            convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
 
             Extra arguments are passed to the transformers pipeline
         Returns:

@@ -6,10 +6,10 @@ BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla lang
 
 | Model   | Size       | Best(WER) |
 | ------- | ---------- | --------- |
-| 'tiny'  | 100-200 MB | 60        |
-| 'base'  | 200-300 MB | 46        |
-| 'small' | 1 GB       | 18        |
-| 'large' | 3-4 GB     | 11        |
+| `tiny`  | 100-200 MB | 60        |
+| `base`  | 200-300 MB | 46        |
+| `small` | 1 GB       | 18        |
+| `large` | 3-4 GB     | 11        |
 
 **NOTE**: Bigger model have better accuracy but slower inference speed. More models [HuggingFace Model Hub](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes)
 
@@ -46,23 +46,23 @@ stt = Speech2Text()
 
 ### Transcribing Audio Files
 
-You can transcribe an audio file by calling the transcribe method and passing the path to the audio file. It will return the transcribed text as a string. Here's an example:
+You can transcribe an audio file by calling the `recognize` method and passing the path to the audio file. It will return the transcribed text as a string. Here's an example:
 
 ```python
-transcription = stt.transcribe("audio.wav")
+transcription = stt.recognize("audio.wav")
 print(transcription)
 ```
 
 ### For longer audio files (As different models have different max audio length, so you can use the following methods to transcribe longer audio files)
 
-For longer audio files, you can use the `generate_text` or `recognize` method. Here's an example:
+For longer audio files, you can use the `generate` or `recognize` method. Here's an example:
 
 ```python
-for text in stt.generate_text("audio.wav"): # it will generate text as the chunks are processed
+for text in stt.generate("audio.wav"): # it will generate text as the chunks are processed
     print(text)
 
 # or
-text = stt.recognize("audio.wav", split=True) # it will use split_on_silence from pydub to split the audio and transcribe it
+text = stt.recognize("audio.wav", split=True) # it will use split_on_silence from pydub to split the audio and transcribe it at once
 print(text)
 
 # or
@@ -215,3 +215,9 @@ options:
   --list list of available models
   --info show model info
 ```
+
+## Custom Use Cases and Support
+
+If your business or project has specific speech-to-text requirements that go beyond the capabilities of the provided open-source package, I'm here to help! I understand that each use case is unique, and I'm open to collaborating on custom solutions that meet your needs. Whether you have longer audio files that need accurate transcription, require model fine-tuning, or need assistance in implementing the package effectively, I'm available for support and consultation.
+
+Feel free to reach out to me with your custom use cases, questions, or ideas at [hossain0338@gmail.com]. I'm excited to work with you and explore how BanglaSpeech2Text can be tailored to create the best possible solution for your requirements.
