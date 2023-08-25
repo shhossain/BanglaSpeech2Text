@@ -1,6 +1,9 @@
 import unittest
 import requests
 import os
+from pydub import AudioSegment
+import io
+from speech_recognition import AudioData
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 TEST_WAV = os.path.join(current_dir, "test.wav")
@@ -54,10 +57,36 @@ class TestBanglaSpeech2Text(unittest.TestCase):
             r = requests.get(url)
             self.assertEqual(r.status_code, 200)
 
-    def test_is_bangla_speech2text_working(self):
-        """Test Bangla Speech2Text"""
-
+    def test_with_file(self):
+        # test with file path
         text = self.speech2text(TEST_WAV)
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+
+    def test_with_audio_segment(self):
+        # test with audio segment
+        audio = AudioSegment.from_wav(TEST_WAV)
+        text = self.speech2text(audio)
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+
+    def test_with_audio_data(self):
+        # test with audio data
+        with open(TEST_WAV, "rb") as f:
+            audio = AudioData(f.read(), 16000, 2)
+        text = self.speech2text(audio)
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+
+    def test_with_io(self):
+        # test with io
+        with open(TEST_WAV, "rb") as f:
+            audio = io.BytesIO(f.read())
+        text = self.speech2text(audio)
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+
+    def test_with_bytes(self):
+        # test with bytes
+        with open(TEST_WAV, "rb") as f:
+            audio = f.read()
+        text = self.speech2text(audio)
         self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
 
     def test_is_long_audio_working(self):
@@ -66,7 +95,7 @@ class TestBanglaSpeech2Text(unittest.TestCase):
         text = ""
         for r in self.speech2text.recognize(TEST_WAV_2):
             text += r
-        
+
         self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT_2, 10))
 
 
