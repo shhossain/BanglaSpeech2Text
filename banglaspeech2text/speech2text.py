@@ -388,6 +388,7 @@ class Speech2Text:
                 data = audio
             else:
                 data = AudioSegment.from_file(audio)
+                
 
         elif isinstance(audio, np.ndarray):
             data = audio
@@ -399,6 +400,9 @@ class Speech2Text:
 
         elif isinstance(audio, BytesIO):
             data = audio.getvalue()
+        
+        elif isinstance(audio, bytes):
+            data = audio
 
         else:
             raise TypeError(
