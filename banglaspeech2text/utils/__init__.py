@@ -38,7 +38,12 @@ def download_ffmpeg() -> None:
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
         block_size = 1024 * 1024  # 1 MB
-        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        progress_bar = tqdm(
+            total=total_size_in_bytes,
+            unit="iB",
+            unit_scale=True,
+            desc="Downloading ffmpeg",
+        )
         with open(path, "wb") as file:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
@@ -50,34 +55,33 @@ def download_ffmpeg() -> None:
         os.remove(path)
 
         # recursively search for ffmpeg.exe
-        bin_path = None
+        ffmpeg_exe_path = None
         for root, dirs, files in os.walk(ffmpeg_path):
             if "ffmpeg.exe" in files:
-                bin_path = root
+                ffmpeg_exe_path = os.path.join(root, "ffmpeg.exe")
                 break
 
-        if bin_path is None:
+        if ffmpeg_exe_path is None:
             raise RuntimeError(
                 "Error while installing ffmpeg: ffmpeg.exe not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        if not is_root():
-            elevate.elevate(show_console=False)
+        python_path = None
+        possible_paths = ["python", "python3", "py"]
+        for path in possible_paths:
+            if shutil.which(path):
+                python_path = path
+                break
 
-        cmd = [
-            "setx",
-            "PATH",
-            f"%PATH%;{bin_path}",
-        ]
-        try:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL)
-        except Exception as e:
+        if python_path is None:
             raise RuntimeError(
-                f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
+                "Error while installing ffmpeg: Python path not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        # update current session
-        os.environ["PATH"] += f";{bin_path}"
+        scripts_path = os.path.join(python_path, "scripts")
+
+        # copy ffmpeg.exe to scripts folder
+        shutil.copy(ffmpeg_exe_path, scripts_path)
 
     else:
         # check for active package managers
