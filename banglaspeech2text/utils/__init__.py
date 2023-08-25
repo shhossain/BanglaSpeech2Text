@@ -7,10 +7,15 @@ import zipfile
 import os
 import ctypes
 import shutil
+import warnings
 
 
 def get_cache_dir() -> str:
     return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
+
+
+if not os.path.exists(get_cache_dir()):
+    os.makedirs(get_cache_dir())
 
 
 def is_root() -> bool:
@@ -28,38 +33,63 @@ def ffmpeg_installed() -> bool:
         return False
 
 
+def check_ffmpeg_health(exe_path) -> bool:
+    # check if exe is corupts or not
+    try:
+        subprocess.run([exe_path, "-version"], stdout=subprocess.DEVNULL)
+        return True
+    except FileNotFoundError:
+        return False
+
+
 def download_ffmpeg() -> None:
     if platform.system() == "Windows":
         url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
         cache_dir = get_cache_dir()
         path = os.path.join(cache_dir, "ffmpeg-release-essentials.zip")
         ffmpeg_path = os.path.join(cache_dir, "ffmpeg-release-essentials")
-
-        response = requests.get(url, stream=True)
-        total_size_in_bytes = int(response.headers.get("content-length", 0))
-        block_size = 1024 * 1024  # 1 MB
-        progress_bar = tqdm(
-            total=total_size_in_bytes,
-            unit="iB",
-            unit_scale=True,
-            desc="Downloading ffmpeg",
-        )
-        with open(path, "wb") as file:
-            for data in response.iter_content(block_size):
-                progress_bar.update(len(data))
-                file.write(data)
-        progress_bar.close()
-
-        with zipfile.ZipFile(path, "r") as zip_ref:
-            zip_ref.extractall(ffmpeg_path)
-        os.remove(path)
-
-        # recursively search for ffmpeg.exe
         ffmpeg_exe_path = None
-        for root, dirs, files in os.walk(ffmpeg_path):
-            if "ffmpeg.exe" in files:
-                ffmpeg_exe_path = os.path.join(root, "ffmpeg.exe")
-                break
+        for _ in range(3):
+            if not os.path.exists(ffmpeg_path):
+                if not os.path.exists(path):
+                    response = requests.get(url, stream=True)
+                    total_size_in_bytes = int(response.headers.get("content-length", 0))
+                    block_size = 1024 * 1024  # 1 MB
+                    progress_bar = tqdm(
+                        total=total_size_in_bytes,
+                        unit="iB",
+                        unit_scale=True,
+                        desc="Downloading ffmpeg",
+                    )
+                    with open(path, "wb") as file:
+                        for data in response.iter_content(block_size):
+                            progress_bar.update(len(data))
+                            file.write(data)
+                    progress_bar.close()
+
+                # check if zip file is corrupted
+                try:
+                    with zipfile.ZipFile(path, "r") as zip_ref:
+                        zip_ref.extractall(ffmpeg_path)
+                except zipfile.BadZipFile:
+                    os.remove(path)
+                    continue
+
+                # recursively search for ffmpeg.exe
+
+                for root, dirs, files in os.walk(ffmpeg_path):
+                    if "ffmpeg.exe" in files:
+                        ffmpeg_exe_path = os.path.join(root, "ffmpeg.exe")
+                        break
+
+            if ffmpeg_exe_path is None:
+                shutil.rmtree(ffmpeg_path)
+            else:
+                if check_ffmpeg_health(ffmpeg_exe_path):
+                    break
+                else:
+                    shutil.rmtree(ffmpeg_path)
+                    ffmpeg_exe_path = None
 
         if ffmpeg_exe_path is None:
             raise RuntimeError(
@@ -67,10 +97,11 @@ def download_ffmpeg() -> None:
             )
 
         python_path = None
-        possible_paths = ["python", "python3", "py"]
-        for path in possible_paths:
-            if shutil.which(path):
-                python_path = path
+        possible_pythons = ["python", "python3", "py"]
+        for path in possible_pythons:
+            res = shutil.which(path)
+            if res is not None:
+                python_path = res
                 break
 
         if python_path is None:
@@ -85,7 +116,7 @@ def download_ffmpeg() -> None:
 
     else:
         # check for active package managers
-        package_managers = ["apt-get", "brew", "dnf", "yum", "zypper", "pacman"]
+        package_managers = ["apt-get", "brew", "apt", "dnf", "yum", "pacman"]
         package_manager = None
         for pm in package_managers:
             if shutil.which(pm):
@@ -100,6 +131,7 @@ def download_ffmpeg() -> None:
         # install ffmpeg
         if not is_root():
             elevate.elevate(graphical=False)
+            
         cmd = [package_manager, "install", "-y", "ffmpeg"]
 
         try:
@@ -109,20 +141,9 @@ def download_ffmpeg() -> None:
                 f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        # update current session
-        possible_paths = [
-            "/usr/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/snap/bin/ffmpeg",
-        ]
-
-        for path in possible_paths:
-            if os.path.exists(path):
-                os.environ["PATH"] += f":{path}"
-                break
-
 
 if not ffmpeg_installed():
+    warnings.warn("ffmpeg not found. Trying to install it automatically.")
     download_ffmpeg()
 
 
