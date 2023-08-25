@@ -131,7 +131,7 @@ def download_ffmpeg() -> None:
             )
 
         # install ffmpeg
-        if not is_root():
+        if not is_root() and package_manager != "brew":
             elevate.elevate(graphical=False)
 
         pbar.update(1)
