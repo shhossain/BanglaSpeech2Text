@@ -8,6 +8,7 @@ import os
 import ctypes
 import shutil
 import warnings
+import sys
 
 
 def get_cache_dir() -> str:
@@ -43,16 +44,23 @@ def check_ffmpeg_health(exe_path) -> bool:
 
 
 def download_ffmpeg() -> None:
+    pbar = tqdm(total=2, desc="Installing ffmpeg")
     if platform.system() == "Windows":
         url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
         cache_dir = get_cache_dir()
         path = os.path.join(cache_dir, "ffmpeg-release-essentials.zip")
         ffmpeg_path = os.path.join(cache_dir, "ffmpeg-release-essentials")
         ffmpeg_exe_path = None
+
         for _ in range(3):
             if not os.path.exists(ffmpeg_path):
                 if not os.path.exists(path):
-                    response = requests.get(url, stream=True)
+                    headers = {
+                        "Accept": "*/*",
+                        "Connection": "keep-alive",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36 OPR/52.0.2871.40",
+                    }
+                    response = requests.get(url, headers=headers, stream=True)
                     total_size_in_bytes = int(response.headers.get("content-length", 0))
                     block_size = 1024 * 1024  # 1 MB
                     progress_bar = tqdm(
@@ -61,6 +69,7 @@ def download_ffmpeg() -> None:
                         unit_scale=True,
                         desc="Downloading ffmpeg",
                     )
+
                     with open(path, "wb") as file:
                         for data in response.iter_content(block_size):
                             progress_bar.update(len(data))
@@ -75,8 +84,9 @@ def download_ffmpeg() -> None:
                     os.remove(path)
                     continue
 
-                # recursively search for ffmpeg.exe
+                os.remove(path)
 
+                # recursively search for ffmpeg.exe
                 for root, dirs, files in os.walk(ffmpeg_path):
                     if "ffmpeg.exe" in files:
                         ffmpeg_exe_path = os.path.join(root, "ffmpeg.exe")
@@ -91,28 +101,20 @@ def download_ffmpeg() -> None:
                     shutil.rmtree(ffmpeg_path)
                     ffmpeg_exe_path = None
 
+        pbar.update(1)
+
         if ffmpeg_exe_path is None:
-            raise RuntimeError(
+            raise FileNotFoundError(
                 "Error while installing ffmpeg: ffmpeg.exe not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
 
-        python_path = None
-        possible_pythons = ["python", "python3", "py"]
-        for path in possible_pythons:
-            res = shutil.which(path)
-            if res is not None:
-                python_path = res
-                break
-
-        if python_path is None:
-            raise RuntimeError(
-                "Error while installing ffmpeg: Python path not found. Please install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
-            )
+        python_path = sys.exec_prefix
 
         scripts_path = os.path.join(python_path, "scripts")
 
         # copy ffmpeg.exe to scripts folder
         shutil.copy(ffmpeg_exe_path, scripts_path)
+        pbar.update(1)
 
     else:
         # check for active package managers
@@ -131,7 +133,8 @@ def download_ffmpeg() -> None:
         # install ffmpeg
         if not is_root():
             elevate.elevate(graphical=False)
-            
+
+        pbar.update(1)
         cmd = [package_manager, "install", "-y", "ffmpeg"]
 
         try:
@@ -140,6 +143,10 @@ def download_ffmpeg() -> None:
             raise RuntimeError(
                 f"Error while installing ffmpeg: {e}\nPlease install ffmpeg manually. See https://ffmpeg.org/download.html for more info."
             )
+
+        pbar.update(1)
+
+    pbar.close()
 
 
 if not ffmpeg_installed():
