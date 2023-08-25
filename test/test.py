@@ -1,7 +1,6 @@
 import unittest
 import requests
 import os
-import shutil
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 TEST_WAV = os.path.join(current_dir, "test.wav")
@@ -65,7 +64,7 @@ class TestBanglaSpeech2Text(unittest.TestCase):
         """Test Bangla Speech2Text"""
 
         text = ""
-        for r in self.speech2text.generate_text(TEST_WAV_2):
+        for r in self.speech2text.recognize(TEST_WAV_2):
             text += r
         
         self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT_2, 10))

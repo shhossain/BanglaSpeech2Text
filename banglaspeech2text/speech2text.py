@@ -381,6 +381,7 @@ class Speech2Text:
             wav_data = audio.get_wav_data(convert_rate=16000)
             f = io.BytesIO(wav_data)
             data = f.getvalue()
+            f.close()
 
         elif isinstance(audio, str):
             if not split:
@@ -480,7 +481,6 @@ class Speech2Text:
                 min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
-                text_divider (str, optional): Divide output text by this string. Defaults to newline
 
             convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
 

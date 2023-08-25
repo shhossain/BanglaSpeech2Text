@@ -46,7 +46,9 @@ def seg_to_bytes(seg: AudioSegment) -> bytes:
     wav_data = io.BytesIO()
     seg = seg.set_channels(1).set_frame_rate(16000)
     seg.export(wav_data, format="wav")
-    return wav_data.getvalue()
+    byt = wav_data.getvalue()
+    wav_data.close()
+    return byt
 
 
 def split_audio(
