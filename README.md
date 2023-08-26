@@ -6,10 +6,10 @@ BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla lang
 
 | Model   | Size       | Best(WER) |
 | ------- | ---------- | --------- |
-| `tiny`  | 100-200 MB | 60        |
-| `base`  | 200-300 MB | 46        |
-| `small` | 1 GB       | 18        |
-| `large` | 3-4 GB     | 11        |
+| `tiny`  |100-200 MB | 60        |
+| `base`  |200-300 MB | 46        |
+| `small` |1 GB       | 18        |
+| `large` |3-4 GB     | 11        |
 
 **NOTE**: Bigger model have better accuracy but slower inference speed. More models [HuggingFace Model Hub](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes)
 
