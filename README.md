@@ -62,10 +62,12 @@ for text in stt.generate("audio.wav"): # it will generate text as the chunks are
     print(text)
 
 # or
-text = stt.recognize("audio.wav", split=True) # it will use split_on_silence from pydub to split the audio and transcribe it at once
-print(text)
+texts = stt.recognize("audio.wav", split=True) # Probably faster than generate method
+for text in texts:
+    print(text)
 
 # or
+
 # you can pass min_silence_length and silence_threshold to split_on_silence
 text = stt.recognize("audio.wav", split=True, min_silence_length=1000, silence_threshold=-16)
 print(text)
@@ -110,13 +112,13 @@ with sr.Microphone() as source:
 print(output)
 ```
 
-### Use GPU
+### Use CPU
 
 You can use GPU for faster inference. Here's an example:
 
 ```python
 
-stt = Speech2Text(model="base",use_gpu=True)
+stt = Speech2Text(model="base",use_gpu=False)
 
 ```
 
