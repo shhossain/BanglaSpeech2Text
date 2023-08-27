@@ -39,9 +39,9 @@ class Model:
                 self.author = name.split("/")[0]
                 self.save_name = safe_name(name.split("/")[1], self.author)
             else:
-                self.name = name
-                self.author = "local"
-                self.save_name = name
+                local = True
+        elif "\\" in name:
+            if os.path.exists(name):
                 local = True
         else:
             bst = get_model(name)
@@ -50,6 +50,13 @@ class Model:
             self.save_name = safe_name(self.name, self.author)
             last_part = bst["url"].split("/")[-2:]
             self.raw_name = "/".join(last_part)
+            
+        
+        if local:
+            self.name = name
+            self.author = "local"
+            self.save_name = name
+            local = True
 
         # fix save path
         self.cache_dir = get_cache_dir()
@@ -264,7 +271,7 @@ class Speech2Text:
         self,
         model: str = "base",
         cache_path: Optional[str] = None,
-        use_gpu: bool = False,
+        use_gpu: bool = True,
         **kw,
     ):  # type: ignore
         """
@@ -272,7 +279,7 @@ class Speech2Text:
         Args:
             model (str, optional): Model name. Defaults to "base".
             cache_path (str, optional): Cache path to store the model. Defaults to None.
-            use_gpu (bool, optional): Use GPU or not. Defaults to False.
+            use_gpu (bool, optional): Use GPU or not. Defaults to auto detect.
         **kw:
             Keyword arguments are passed to the transformers pipeline
         Examples:
@@ -284,11 +291,14 @@ class Speech2Text:
             >>> stt.recognize("test.wav")
         """
 
-        if kw.get("device", None) is None and kw.get("device_map", None) is None:
-            if use_gpu:
-                kw["device"] = "cuda:0"
-            else:
-                kw["device"] = "cpu"
+        # if kw.get("device", None) is None and kw.get("device_map", None) is None:
+        #     if use_gpu:
+        #         kw["device"] = "cuda:0"
+        #     else:
+        #         kw["device"] = "cpu"
+        
+        if not use_gpu and "device" not in kw and "device_map" not in kw:
+            kw["device"] = "cpu"
 
         self.kw = kw
         self.model = Model(model, cache_path=cache_path, **kw)
@@ -349,11 +359,9 @@ class Speech2Text:
             force_reload: If True, ignore cache and reload the details
         """
         self.model.load_details(force_reload=force_reload)
+        
 
-    def _pipeline_recognize(self, audio, *args, **kw) -> str:
-        return self.pipeline(audio, *args, **kw)["text"]  # type: ignore
-
-    def transcribe(self, audio_path: str, *args, **kw) -> str:
+    def transcribe(self, audio_path: str, *args, **kw):
         """
         Transcribe an audio file to text
         Args:
@@ -427,11 +435,10 @@ class Speech2Text:
         min_silence_length: float = 1000,
         silence_threshold: float = 16,
         padding: int = 300,
-        text_divider: str = "\n",
         convert_func=None,
         *args,
         **kw,
-    ) -> str:
+    ) -> Union[str, list[str]]:
         """
         Recognize an audio to text.
 
@@ -447,27 +454,25 @@ class Speech2Text:
                 min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
-                text_divider (str, optional): Divide output text by this string. Defaults to newline
-
+                
             convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
 
             Extra arguments are passed to the transformers pipeline
         Returns:
             str: Transcribed text
+            list[str] if split is True 
         """
 
         data = self._preprocess(audio, split, convert_func)
         if split:
             segments = split_audio(data, min_silence_length, silence_threshold, padding)
-            text = ""
-            for seg in segments:
-                text += (
-                    self._pipeline_recognize(seg_to_bytes(seg), *args, **kw)
-                    + text_divider
-                )
-            return text
+            segments = [seg_to_bytes(seg) for seg in segments]
+            results = self.pipeline(segments, *args, **kw)  # type: ignore
+            results: list[str] = [result["text"] for result in results] # type: ignore
+            
+            return results
 
-        return self._pipeline_recognize(data, *args, **kw)
+        return self.pipeline(data, *args, **kw)["text"]  # type: ignore
 
     def generate(
         self,
@@ -507,8 +512,9 @@ class Speech2Text:
         data = self._preprocess(audio, True, convert_func)
         segments = split_audio(data, min_silence_length, silence_threshold, padding)
 
+        
         for seg in segments:
-            yield self._pipeline_recognize(seg_to_bytes(seg), *args, **kw)
+            yield self.pipeline(seg, *args, **kw)["text"]  # type: ignore
 
     def generate_text(self, *args, **kw):
         warnings.warn("generate_text is deprecated. Use generate instead")
@@ -519,7 +525,7 @@ class Speech2Text:
         audio: Union[bytes, np.ndarray, str, AudioData, AudioSegment, BytesIO],
         *args,
         **kw,
-    ) -> str:
+    ) -> Union[str, list[str]]:
         """
         Recognize an audio to text.
         Args:
