@@ -472,7 +472,7 @@ class Speech2Text:
             
             return results
 
-        return self.pipeline(data, *args, **kw)[0]["text"]  # type: ignore
+        return self.pipeline(data, *args, **kw)["text"]  # type: ignore
 
     def generate(
         self,
@@ -514,7 +514,7 @@ class Speech2Text:
 
         
         for seg in segments:
-            yield self.pipeline(seg, *args, **kw)[0]["text"]  # type: ignore
+            yield self.pipeline(seg, *args, **kw)["text"]  # type: ignore
 
     def generate_text(self, *args, **kw):
         warnings.warn("generate_text is deprecated. Use generate instead")
