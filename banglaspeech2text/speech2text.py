@@ -75,7 +75,7 @@ class Model:
         # check if model is downloaded
         self.cache_path = cache_path
 
-        if kw.get("load_pipeline", True):
+        if kw.get("load_pipeline", "True") == "True":
             if not os.path.exists(cache_path):
                 self.pipeline = self._get_pipeline(cache_path)
             else:
@@ -98,9 +98,8 @@ class Model:
     def _get_pipeline(self, cache_path: str) -> transformers.Pipeline:
         pipeline = transformers.pipeline
         pipe = pipeline(
-            task="automatic-speech-recognition", model=self.raw_name, **self.kw
+            task="automatic-speech-recognition", model=self.raw_name, cache_dir=cache_path, **self.kw
         )
-        pipe.save_pretrained(cache_path)
         return pipe
 
     def load_details(self, force_reload=False) -> None:
