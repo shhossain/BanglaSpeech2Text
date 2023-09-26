@@ -74,14 +74,12 @@ class Model:
 
         # check if model is downloaded
         self.cache_path = cache_path
+        os.environ['HF_HOME'] = self.cache_dir
 
         if kw.get("load_pipeline", "True") == "True":
-            if not os.path.exists(cache_path):
-                self.pipeline = self._get_pipeline(cache_path)
-            else:
-                self.pipeline = transformers.pipeline(
-                    task="automatic-speech-recognition", model=cache_path, **kw
-                )
+            self.pipeline = transformers.pipeline(
+                task="automatic-speech-recognition", model=cache_path, **kw
+            )
 
         self.__MAX_WER_SCORE = 1000
 
@@ -95,12 +93,7 @@ class Model:
 
         self.load_details()
 
-    def _get_pipeline(self, cache_path: str) -> transformers.Pipeline:
-        pipeline = transformers.pipeline
-        pipe = pipeline(
-            task="automatic-speech-recognition", model=self.raw_name, cache_dir=cache_path, **self.kw
-        )
-        return pipe
+    
 
     def load_details(self, force_reload=False) -> None:
         details_path = os.path.join(self.cache_path, "details.json")
