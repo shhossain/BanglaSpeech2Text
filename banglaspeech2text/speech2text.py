@@ -89,7 +89,7 @@ class Model:
 
         if kw.get("load_pipeline", "True") == "True":
             self.pipeline = transformers.pipeline(
-                task="automatic-speech-recognition", model=name, **kw
+                task="automatic-speech-recognition", model=self.raw_name, **kw
             )
 
         model_dir = self.cache_path / "hub" / self.save_name
