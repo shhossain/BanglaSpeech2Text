@@ -100,13 +100,6 @@ class Model:
             if folders:
                 latest_folder = sorted(folders, key=os.path.getmtime)[-1]
                 self.model_path = latest_folder
-                # files = latest_folder.glob("*")
-                # model_file = [f for f in files if "_model" in f.name]
-                # if model_file:
-                #     model_file = model_file[0]
-                #     data["size"] = convert_file_size(model_file.stat().st_size)
-                # else:
-                #     data["size"] = convert_file_size(0)
 
         self.__MAX_WER_SCORE = 1000
         self._type: str = ""
