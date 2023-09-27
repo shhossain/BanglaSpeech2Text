@@ -1,8 +1,8 @@
-# Bangla Speech to Text
+# BanglaSpeech2Text (Bangla Speech to Text)
 
 BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla language. Fine-tuned on the latest whisper speech to text model for optimal performance. Transcribe speech to text, convert voice to text and perform speech recognition in python with ease, even without internet connection.
 
-## Models
+## [Models](https://github.com/shhossain/BanglaSpeech2Text/blob/main/banglaspeech2text/utils/listed_models.json)
 
 | Model   | Size       | Best(WER) |
 | ------- | ---------- | --------- |
@@ -19,7 +19,7 @@ BanglaSpeech2Text: An open-source offline speech-to-text package for Bangla lang
 
 ## Test it in Google Colab
 
-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/shhossain/BanglaSpeech2Text/blob/main/BanglaSpeech2Text_in_Colab.ipynb)
+- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/shhossain/BanglaSpeech2Text/blob/main/banglaspeech2text_in_colab.ipynb)
 
 ## Installation
 
@@ -164,7 +164,10 @@ stt = Speech2Text(model="openai/whisper-tiny")
 ### Change Model Save location
 
 ```python
-stt = Speech2Text(model="base",cache_path="path/to/save/model")
+import os
+os.environ["BANGLASPEECH2TEXT_CACHE"] = "/path/to/cache"
+
+stt = Speech2Text(model="base")
 ```
 
 ### See current model info
