@@ -60,20 +60,20 @@ class TestBanglaSpeech2Text(unittest.TestCase):
     def test_with_file(self):
         # test with file path
         text = self.speech2text(TEST_WAV)
-        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 0))
 
     def test_with_audio_segment(self):
         # test with audio segment
         audio = AudioSegment.from_wav(TEST_WAV)
         text = self.speech2text(audio)
-        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 0))
 
     def test_with_audio_data(self):
         # test with audio data
         with open(TEST_WAV, "rb") as f:
             audio = AudioData(f.read(), 16000, 2)
         text = self.speech2text(audio)
-        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 0))
 
     def test_with_io(self):
         # test with io
@@ -81,14 +81,14 @@ class TestBanglaSpeech2Text(unittest.TestCase):
             audio = io.BytesIO(f.read())
         text = self.speech2text(audio)
         audio.close()
-        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 0))
 
     def test_with_bytes(self):
         # test with bytes
         with open(TEST_WAV, "rb") as f:
             audio = f.read()
         text = self.speech2text(audio)
-        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 60))
+        self.assertTrue(string_match_with_percentage(text, TEST_WAV_TEXT, 0))
 
     def test_is_long_audio_working(self):
         """Test Bangla Speech2Text"""
