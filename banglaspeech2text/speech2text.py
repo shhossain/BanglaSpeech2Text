@@ -1,14 +1,20 @@
 from banglaspeech2text.utils import (
     all_models,
     nice_model_list,
-    safe_name,
-    get_cache_dir,
     get_model,
     get_wer_value,
     convert_file_size,
     seg_to_bytes,
     split_audio,
 )
+import os
+from pathlib import Path
+
+os.environ["HF_HOME"] = os.getenv(
+    "BANGLASPEECH2TEXT_CACHE_DIR", str(Path.home() / ".banglaspeech2text")
+)
+CACHE_DIR = Path(os.getenv("HF_HOME", str(Path.home() / ".banglaspeech2text")))
+CACHE_DIR.mkdir(exist_ok=True, parents=True)
 
 
 from pprint import pformat
@@ -18,7 +24,7 @@ import warnings
 import numpy as np
 
 import requests
-import os
+
 from speech_recognition import AudioData
 import transformers
 import re
@@ -28,8 +34,32 @@ from pydub import AudioSegment
 from io import BytesIO
 
 
+def safe_json(
+    file_path: str, read: bool = True, data: Optional[dict] = None
+) -> Union[dict, None, bool]:
+    if read:
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+                    if not data:
+                        return None
+                    return data
+            except Exception as e:
+                return None
+        else:
+            return None
+    else:
+        try:
+            with open(file_path, "w") as f:
+                json.dump(data, f)
+                return True
+        except Exception as e:
+            return False
+
+
 class Model:
-    def __init__(self, name: str, cache_path: Optional[str] = None, **kw):
+    def __init__(self, name: str, **kw):
         self.kw = kw
         self.raw_name = name
         local = False
@@ -37,7 +67,6 @@ class Model:
             if not os.path.exists(name):
                 self.name = name
                 self.author = name.split("/")[0]
-                self.save_name = safe_name(name.split("/")[1], self.author)
             else:
                 local = True
         elif "\\" in name:
@@ -47,42 +76,32 @@ class Model:
             bst = get_model(name)
             self.name = bst["name"]
             self.author = bst["author"]
-            self.save_name = safe_name(self.name, self.author)
             last_part = bst["url"].split("/")[-2:]
             self.raw_name = "/".join(last_part)
-            
-        
+
         if local:
             self.name = name
             self.author = "local"
-            self.save_name = name
             local = True
 
-        # fix save path
-        self.cache_dir = get_cache_dir()
-        cache_dir_models = os.path.join(self.cache_dir, "models")
-        if not os.path.exists(cache_dir_models):
-            os.makedirs(cache_dir_models)
-
-        if not local:
-            if cache_path is None or not cache_path:
-                cache_path = os.path.join(cache_dir_models, self.save_name)
-            else:
-                cache_path = os.path.join(str(cache_path), "models", self.save_name)
-        else:
-            cache_path = name
-
-        # check if model is downloaded
-        self.cache_path = cache_path
-        os.environ['HF_HOME'] = self.cache_dir
+        self.cache_path = CACHE_DIR
+        self.save_name = f"models--{self.raw_name.replace('/', '--')}"
 
         if kw.get("load_pipeline", "True") == "True":
             self.pipeline = transformers.pipeline(
-                task="automatic-speech-recognition", model=cache_path, **kw
+                task="automatic-speech-recognition", model=self.raw_name, **kw
             )
 
-        self.__MAX_WER_SCORE = 1000
+        model_dir = self.cache_path / "hub" / self.save_name
+        self.model_path = model_dir
+        snapshots = model_dir / "snapshots"
+        if snapshots.exists():
+            folders = snapshots.glob("*")
+            if folders:
+                latest_folder = sorted(folders, key=os.path.getmtime)[-1]
+                self.model_path = latest_folder
 
+        self.__MAX_WER_SCORE = 1000
         self._type: str = ""
         self._license: str = ""
         self._description: str = ""
@@ -93,132 +112,90 @@ class Model:
 
         self.load_details()
 
-    
-
     def load_details(self, force_reload=False) -> None:
-        details_path = os.path.join(self.cache_path, "details.json")
-        if not os.path.exists(details_path) or force_reload:
+        details_path = self.model_path / "details.json"
+        data: dict = safe_json(str(details_path), data=None)  # type: ignore
+        if not data or force_reload:
+            data = {}
+
             mdl = get_model(self.raw_name, raise_error=False)
             if mdl is not None:
-                self._type = mdl["type"]
-                self._license = mdl["license"]
-                self._description = mdl["description"]
-                self._url = mdl["url"]
-                self._wer = mdl["wer"]
-                self._size = mdl["size"]
-                self.save_details(details_path)
+                data["type"] = mdl["type"]
+                data["license"] = mdl["license"]
+                data["description"] = mdl["description"]
+                data["url"] = mdl["url"]
+                data["wer"] = mdl["wer"]
+                data["size"] = mdl["size"]
+                data["lang"] = mdl["lang"]
             else:
                 if "base" in self.name:
-                    self._type = "base"
+                    data["type"] = "base"
                 elif "large" in self.name:
-                    self._type = "large"
+                    data["type"] = "large"
                 elif "tiny" in self.name:
-                    self._type = "tiny"
+                    data["type"] = "tiny"
                 elif "small" in self.name:
-                    self._type = "small"
+                    data["type"] = "small"
                 elif "medium" in self.name:
-                    self._type = "medium"
+                    data["type"] = "medium"
                 else:
-                    self._type = "unknown"
+                    data["type"] = "unknown"
 
-                self._url = f"https://huggingface.co/{self.raw_name}"
-
-                # check cache path files and get the file with "model" in it and get the size. 3.06 GB = ~3.1 GB, 346 MB = ~350 MB
-                files = os.listdir(self.cache_path)
-                for file in files:
-                    if "_model" in file:
-                        file_path = os.path.join(self.cache_path, file)
-                        size = os.path.getsize(file_path)
-                        self._size = convert_file_size(size)
-                        break
+                data["url"] = f"https://huggingface.co/{self.raw_name}"
+                files = self.model_path.glob("*")
+                model_file = [f for f in files if "_model" in f.name]
+                if model_file:
+                    model_file = model_file[0]
+                    data["size"] = convert_file_size(model_file.stat().st_size)
+                else:
+                    data["size"] = convert_file_size(0)
 
                 try:
-                    url = f"{self._url}/raw/main/README.md"
+                    url = f"{data['url']}/raw/main/README.md"
                     res = requests.get(url)
                     if res.status_code == 200:
                         text = res.text
-                        self._description = text
-
                         pattern = r"---\n(.*?)\n---"
-                        data = re.search(pattern, text, re.DOTALL)
+                        mtc = re.search(pattern, text, re.DOTALL)
+                        data["description"] = text
+                        if mtc:
+                            ydata = mtc.group(1)
+                            pardata = yaml.safe_load(ydata)
+                            data["license"] = pardata.get("license", "unknown")
+                            data["lang"] = pardata.get("language", "bn")
+                        else:
+                            raise Exception("No match found")
 
-                        if data:
-                            data = data.group(1)
-                            pardata = yaml.safe_load(data)
-                            self._license = pardata.get("license", "unknown")
-                            self._lang = pardata.get("language", None)
-                            self._wer = get_wer_value(
-                                text, max_wer=self.__MAX_WER_SCORE
-                            )
+                        data["wer"] = get_wer_value(text, max_wer=self.__MAX_WER_SCORE)
 
                 except Exception as e:
-                    pass
+                    data["license"] = "unknown"
+                    data["lang"] = "bn"
+                    data["wer"] = self.__MAX_WER_SCORE
+                    data["description"] = "No description found"
 
-                self.save_details(details_path)
+            safe_json(str(details_path), read=False, data=data)
 
-        else:
-            with open(details_path, "r") as f:
-                details = json.load(f)
-            self._type = details["type"]
-            self._license = details["license"]
-            self._description = details["description"]
-            self._url = details["url"]
-            self._wer = details["wer"]
-            self._size = details["size"]
-            self._lang = details["lang"]
-
-    def save_details(self, details_path: str) -> None:
-        details = {
-            "type": self._type,
-            "license": self._license,
-            "description": self._description,
-            "url": self._url,
-            "wer": self._wer,
-            "size": self._size,
-            "lang": self._lang,
-        }
-        with open(details_path, "w") as f:
-            json.dump(details, f)
-
-    @property
-    def type(self) -> str:
-        return self._type
-
-    @property
-    def license(self) -> str:
-        return self._license
-
-    @property
-    def description(self) -> str:
-        return self._description
-
-    @property
-    def url(self) -> str:
-        return self._url
-
-    @property
-    def wer(self) -> float:
-        return self._wer
-
-    @property
-    def size(self) -> str:
-        return self._size
-
-    @property
-    def lang(self) -> str:
-        return self._lang
+        self._type = data["type"]
+        self._license = data["license"]
+        self._description = data["description"]
+        self._url = data["url"]
+        self._wer = data["wer"]
+        self._size = data["size"]
+        self._lang = data["lang"]
+    
 
     def __repr__(self):
-        return f"Model(name={self.name}, type={self.type})"
+        return f"Model(name={self.name}, type={self._type})"
 
     def __str__(self):
         txt = f"Model: {self.name}\n"
-        txt += f"Type: {self.type}\n"
+        txt += f"Type: {self._type}\n"
         txt += f"Author: {self.author}\n"
-        txt += f"License: {self.license}\n"
-        txt += f"Size: {self.size}\n"
-        txt += f"WER: {self.wer}\n"
-        txt += f"URL: {self.url}\n"
+        txt += f"License: {self._license}\n"
+        txt += f"Size: {self._size}\n"
+        txt += f"WER: {self._wer}\n"
+        txt += f"URL: {self._url}\n"
         return txt
 
     # Removed methods
@@ -270,7 +247,6 @@ class Speech2Text:
         Speech to text model
         Args:
             model (str, optional): Model name. Defaults to "base".
-            cache_path (str, optional): Cache path to store the model. Defaults to None.
             use_gpu (bool, optional): Use GPU or not. Defaults to auto detect.
         **kw:
             Keyword arguments are passed to the transformers pipeline
@@ -288,17 +264,26 @@ class Speech2Text:
         #         kw["device"] = "cuda:0"
         #     else:
         #         kw["device"] = "cpu"
-        
+
+        if cache_path is not None:
+            warnings.warn(
+                'cache_path is removed. Use os.environ["BANGLASPEECH2TEXT_CACHE_DIR"] to set cache path'
+            )
+
         if not use_gpu and "device" not in kw and "device_map" not in kw:
             kw["device"] = "cpu"
 
         self.kw = kw
-        self.model = Model(model, cache_path=cache_path, **kw)
+        self.model = Model(model, **kw)
         self.use_gpu = use_gpu
 
     @property
     def cache_path(self) -> str:
-        return self.model.cache_path
+        return str(self.model.cache_path)
+    
+    @property
+    def model_path(self) -> str:
+        return str(self.model.model_path)
 
     @property
     def model_name(self) -> str:
@@ -310,31 +295,31 @@ class Speech2Text:
 
     @property
     def model_type(self) -> str:
-        return self.model.type
+        return self.model._type
 
     @property
     def model_license(self) -> str:
-        return self.model.license
+        return self.model._license
 
     @property
     def model_description(self) -> str:
-        return self.model.description
+        return self.model._description
 
     @property
     def model_url(self) -> str:
-        return self.model.url
+        return self.model._url
 
     @property
     def model_wer(self) -> float:
-        return self.model.wer
+        return self.model._wer
 
     @property
     def model_size(self) -> str:
-        return self.model.size
+        return self.model._size
 
     @property
     def model_lang(self) -> str:
-        return self.model.lang
+        return self.model._lang
 
     @property
     def model_details(self) -> str:
@@ -351,7 +336,6 @@ class Speech2Text:
             force_reload: If True, ignore cache and reload the details
         """
         self.model.load_details(force_reload=force_reload)
-        
 
     def transcribe(self, audio_path: str, *args, **kw):
         """
@@ -446,13 +430,13 @@ class Speech2Text:
                 min_silence_length (float, optional): Minimum silence length in ms. Defaults to 1000
                 silence_threshold (float, optional): Average db of audio minus this value is considered as silence. Defaults to 16
                 padding (int, optional): Pad beginning and end of splited audio by this ms. Defaults to 300
-                
+
             convert_func (function, optional): Function to convert audio to supported types. Defaults to None.
 
             Extra arguments are passed to the transformers pipeline
         Returns:
             str: Transcribed text
-            list[str] if split is True 
+            list[str] if split is True
         """
 
         data = self._preprocess(audio, split, convert_func)
@@ -460,8 +444,8 @@ class Speech2Text:
             segments = split_audio(data, min_silence_length, silence_threshold, padding)
             segments = [seg_to_bytes(seg) for seg in segments]
             results = self.pipeline(segments, *args, **kw)  # type: ignore
-            results: list[str] = [result["text"] for result in results] # type: ignore
-            
+            results: list[str] = [result["text"] for result in results]  # type: ignore
+
             return results
 
         return self.pipeline(data, *args, **kw)["text"]  # type: ignore
@@ -504,7 +488,6 @@ class Speech2Text:
         data = self._preprocess(audio, True, convert_func)
         segments = split_audio(data, min_silence_length, silence_threshold, padding)
 
-        
         for seg in segments:
             yield self.pipeline(seg, *args, **kw)["text"]  # type: ignore
 
@@ -546,8 +529,7 @@ class Speech2Text:
         return f"Speech2Text(model={self.model_name}, use_gpu={self.use_gpu})"
 
     def __str__(self) -> str:
-        return f"""Speech2Text(model={self.model_name}, use_gpu={self.use_gpu})
-        {self.model_details}"""
+        return self.model_details
 
     @staticmethod
     def list_models() -> Models:

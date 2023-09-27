@@ -9,14 +9,14 @@ import ctypes
 import shutil
 import warnings
 import sys
+from pathlib import Path
 
 
-def get_cache_dir() -> str:
-    return os.path.join(os.path.expanduser("~"), ".banglaspeech2text")
 
+pcache_dir = Path.home() / ".banglaspeech2text" 
+cache_dir: str = os.getenv("BANGLASPEECH2TEXT_CACHE_DIR", str(pcache_dir))
+os.makedirs(cache_dir, exist_ok=True)
 
-if not os.path.exists(get_cache_dir()):
-    os.makedirs(get_cache_dir())
 
 
 def is_root() -> bool:
@@ -47,7 +47,6 @@ def download_ffmpeg() -> None:
     pbar = tqdm(total=2, desc="Installing ffmpeg")
     if platform.system() == "Windows":
         url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
-        cache_dir = get_cache_dir()
         path = os.path.join(cache_dir, "ffmpeg-release-essentials.zip")
         ffmpeg_path = os.path.join(cache_dir, "ffmpeg-release-essentials")
         ffmpeg_exe_path = None
