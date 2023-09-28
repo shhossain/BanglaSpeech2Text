@@ -242,6 +242,4 @@ options:
 
 ## Custom Use Cases and Support
 
-If your business or project has specific speech-to-text requirements that go beyond the capabilities of the provided open-source package, I'm here to help! I understand that each use case is unique, and I'm open to collaborating on custom solutions that meet your needs. Whether you have longer audio files that need accurate transcription, require model fine-tuning, or need assistance in implementing the package effectively, I'm available for support and consultation.
-
-Feel free to reach out to me with your custom use cases, questions, or ideas at [hossain0338@gmail.com]. I'm excited to work with you and explore how BanglaSpeech2Text can be tailored to create the best possible solution for your requirements.
+If your business or project has specific speech-to-text requirements that go beyond the capabilities of the provided open-source package, I'm here to help! I understand that each use case is unique, and I'm open to collaborating on custom solutions that meet your needs. Whether you have longer audio files that need accurate transcription, require model fine-tuning, or need assistance in implementing the package effectively, I'm available for support.
