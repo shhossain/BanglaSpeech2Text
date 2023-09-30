@@ -53,7 +53,8 @@ transcription = stt.recognize("audio.wav")
 print(transcription)
 ```
 
-### For longer audio files (As different models have different max audio length, so you can use the following methods to transcribe longer audio files)
+### For longer audio files
+(As different models have different max audio length, so you can use the following methods to transcribe longer audio files)
 
 For longer audio files, you can use the `generate` or `recognize` method. Here's an example:
 
