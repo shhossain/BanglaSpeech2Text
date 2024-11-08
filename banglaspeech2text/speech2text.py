@@ -6,6 +6,7 @@ from banglaspeech2text.utils import (
     convert_file_size,
     seg_to_bytes,
     split_audio,
+    get_generation_model,
 )
 import os
 from pathlib import Path
@@ -27,6 +28,7 @@ import requests
 
 from speech_recognition import AudioData
 import transformers
+import torch
 import re
 import yaml
 import json
@@ -91,6 +93,15 @@ class Model:
             self.pipeline = transformers.pipeline(
                 task="automatic-speech-recognition", model=self.raw_name, **kw
             )
+            # set generation config
+            generation_config_model = get_generation_model(self.raw_name)
+            try:
+                gen_config = transformers.GenerationConfig.from_pretrained(
+                    generation_config_model
+                )
+                self.pipeline.model.generation_config = gen_config
+            except Exception as e:
+                pass
 
         model_dir = self.cache_path / "hub" / self.save_name
         self.model_path = model_dir
@@ -183,7 +194,6 @@ class Model:
         self._wer = data["wer"]
         self._size = data["size"]
         self._lang = data["lang"]
-    
 
     def __repr__(self):
         return f"Model(name={self.name}, type={self._type})"
@@ -240,7 +250,7 @@ class Speech2Text:
         self,
         model: str = "base",
         cache_path: Optional[str] = None,
-        use_gpu: bool = True,
+        use_gpu: Optional[bool] = None,
         **kw,
     ):  # type: ignore
         """
@@ -259,18 +269,15 @@ class Speech2Text:
             >>> stt.recognize("test.wav")
         """
 
-        # if kw.get("device", None) is None and kw.get("device_map", None) is None:
-        #     if use_gpu:
-        #         kw["device"] = "cuda:0"
-        #     else:
-        #         kw["device"] = "cpu"
-
         if cache_path is not None:
             warnings.warn(
                 'cache_path is removed. Use os.environ["BANGLASPEECH2TEXT_CACHE_DIR"] to set cache path'
             )
 
-        if not use_gpu and "device" not in kw and "device_map" not in kw:
+        if use_gpu is None or use_gpu:
+            if not kw.get("device", None) and not kw.get("device_map", None):
+                kw["device"] = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
             kw["device"] = "cpu"
 
         self.kw = kw
@@ -280,7 +287,7 @@ class Speech2Text:
     @property
     def cache_path(self) -> str:
         return str(self.model.cache_path)
-    
+
     @property
     def model_path(self) -> str:
         return str(self.model.model_path)

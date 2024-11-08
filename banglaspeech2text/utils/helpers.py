@@ -83,3 +83,20 @@ def split_audio(
 
 
 
+def get_generation_model(model_name: str) -> str:
+    mapping = {
+        "tiny": "openai/whisper-tiny",
+        "base": "openai/whisper-base",
+        "small": "openai/whisper-small",
+        "medium": "openai/whisper-medium",
+        "large-v3-turbo": "openai/whisper-large-v3-turbo",
+        "large-v3": "openai/whisper-large-v3",
+        "large-v2": "openai/whisper-large-v2",
+        "large": "openai/whisper-large",
+    }
+
+    for key in mapping:
+        if key in model_name:
+            return mapping[key]
+    
+    return model_name
