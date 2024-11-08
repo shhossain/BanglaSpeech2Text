@@ -163,6 +163,7 @@ from banglaspeech2text.utils.helpers import (
     audiosegment_to_librosawav,
     seg_to_bytes,
     split_audio,
+    get_generation_model,
 )
 
 
@@ -176,4 +177,5 @@ __all__ = [
     "audiosegment_to_librosawav",
     "seg_to_bytes",
     "split_audio",
+    "get_generation_model",
 ]
