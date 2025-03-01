@@ -13,6 +13,7 @@ import torch
 # Get a child logger that inherits from the main logger
 logger = logging.getLogger("BanglaSpeech2Text.speech2text")
 
+
 class Speech2Text(WhisperModel):
     def __init__(
         self,
@@ -95,7 +96,7 @@ class Speech2Text(WhisperModel):
         else:
             return "".join([segment.text for segment in segments])
 
-    def _preprocess(self, audio: Any) -> str | BinaryIO | ndarray:
+    def _preprocess(self, audio: Any) -> Union[str, BinaryIO, ndarray]:
         class_name = audio.__class__.__name__
         temp_file = Path(get_app_temp_dir()) / f"{random.randint(0, 100000)}.wav"
         if class_name == "AudioData":  # from speech_recognition
