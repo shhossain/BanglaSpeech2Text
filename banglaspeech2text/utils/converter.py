@@ -4,7 +4,8 @@ from pathlib import Path
 import subprocess
 import logging
 
-logger = logging.getLogger("BanglaSpeech2Text")
+# Get a child logger that inherits from the main logger
+logger = logging.getLogger("BanglaSpeech2Text.converter")
 
 
 def is_ct2_transformers_converter_available() -> bool:

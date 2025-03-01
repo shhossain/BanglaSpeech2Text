@@ -7,13 +7,27 @@ import requests
 import yaml
 from banglaspeech2text.utils.helpers import convert_file_size, get_wer_value, safe_json
 import threading
+from dataclasses import dataclass
+import logging
+
+# Get a child logger that inherits from the main logger
+logger = logging.getLogger("BanglaSpeech2Text.models")
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(current_dir, "listed_models.json"), "r") as f:
     all_models = json.load(f)
 
 
+@dataclass
 class ModelMetadata:
+    """Metadata about a model."""
+
+    raw_name: str
+
+    def __post_init__(self):
+        self.cache_path = Path(os.path.expanduser("~/.cache/banglaspeech2text"))
+        logger.debug(f"Model cache path: {self.cache_path}")
+
     def __init__(self, name: str, **kw):
         self.kw = kw
         self.raw_name = name
@@ -148,8 +162,17 @@ class ModelMetadata:
 
 
 class BanglaASRModels:
-    def __init__(self) -> None:
-        self.models = all_models
+    """Available Bangla ASR models."""
+
+    def __init__(self):
+        self.models = {
+            "large": "anuragshas/whisper-large-v2-bn",
+            "medium": "anuragshas/whisper-medium-bn",
+            "small": "anuragshas/whisper-small-bn",
+        }
+
+    def __call__(self):
+        return self.models
 
     def __str__(self) -> str:
         return f"{nice_model_list()}\n\nFor more models, visit https://huggingface.co/models?pipeline_tag=automatic-speech-recognition&language=bn&sort=likes"

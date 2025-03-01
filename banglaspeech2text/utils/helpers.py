@@ -3,8 +3,13 @@ import os
 import re
 from typing import Optional, Union
 import tempfile
+from pathlib import Path
+import logging
 
 APP_NAME = "banglaspeech2text"
+
+# Get a child logger that inherits from the main logger
+logger = logging.getLogger("BanglaSpeech2Text.helpers")
 
 
 def get_app_dir() -> str:
@@ -13,10 +18,12 @@ def get_app_dir() -> str:
     return path
 
 
-def get_app_temp_dir() -> str:
-    path = os.path.join(tempfile.gettempdir(), APP_NAME)
-    os.makedirs(path, exist_ok=True)
-    return path
+def get_app_temp_dir() -> Path:
+    """Get a temporary directory for the application."""
+    temp_dir = Path(tempfile.gettempdir()) / "banglaspeech2text"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    logger.debug(f"Using temporary directory: {temp_dir}")
+    return temp_dir
 
 
 def safe_name(name, author) -> str:

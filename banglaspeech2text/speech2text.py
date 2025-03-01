@@ -1,6 +1,7 @@
 from pathlib import Path
 import random
 from typing import Any, BinaryIO, Iterable, Literal, Optional, Union, overload
+import logging
 from faster_whisper import WhisperModel
 from faster_whisper.transcribe import Segment
 from numpy import ndarray
@@ -9,6 +10,8 @@ from banglaspeech2text.utils.helpers import get_app_temp_dir
 from banglaspeech2text.utils.models import BanglaASRModels, ModelMetadata
 import torch
 
+# Get a child logger that inherits from the main logger
+logger = logging.getLogger("BanglaSpeech2Text.speech2text")
 
 class Speech2Text(WhisperModel):
     def __init__(
@@ -24,9 +27,11 @@ class Speech2Text(WhisperModel):
         **kwargs,
     ):
         self.model_metadata = ModelMetadata(model_size_or_path)
+        logger.info(f"Initializing Speech2Text with model: {model_size_or_path}")
 
         if compute_type == "default":
             compute_type = "float16" if torch.cuda.is_available() else "int8"
+            logger.info(f"Using compute type: {compute_type}")
 
         self.model_path = model_size_or_path
         if not skip_conversion:
