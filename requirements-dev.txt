@@ -4,5 +4,4 @@ torch
 PyYAML
 requests
 SpeechRecognition
-PyAudio
 pydub

@@ -65,7 +65,6 @@ setup(
     extras_require={
         "dev": [
             "SpeechRecognition",
-            "PyAudio",
             "pydub",
         ],
     },
