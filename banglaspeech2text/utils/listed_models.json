@@ -1,0 +1,58 @@
+{
+  "tiny": [
+    {
+      "url": "https://huggingface.co/shhossain/whisper-tiny-bn",
+      "name": "whisper-tiny-bn",
+      "type": "tiny",
+      "license": "apache-2.0",
+      "author": "shhossain",
+      "wer": 74,
+      "size": "~151 MB"
+    },
+    {
+      "url": "https://huggingface.co/ehzawad/whisper-tiny-bn",
+      "name": "whisper-tiny-bn",
+      "type": "tiny",
+      "license": "apache-2.0",
+      "author": "Emrul Hasan Zawad",
+      "wer": 75,
+      "size": "~151 MB"
+    }
+    
+  ],
+  "base": [
+    {
+      "url": "https://huggingface.co/shhossain/whisper-base-bn",
+      "name": "whisper-base-bn",
+      "type": "base",
+      "license": "apache-2.0",
+      "author": "Sifat",
+      "wer": 46,
+      "size": "~300 MB"
+    }
+  ],
+  "large": [
+    {
+      "url": "https://huggingface.co/anuragshas/whisper-large-v2-bn",
+      "name": "whisper-large-v2-bn",
+      "host": "huggingface.co",
+      "type": "large",
+      "license": "apache-2.0",
+      "author": "Anurag Singh",
+      "wer": 11,
+      "size": "~3.1 GB"
+    }
+  ],
+  "small": [
+    {
+      "url": "https://huggingface.co/anuragshas/whisper-small-bn",
+      "name": "whisper-small-bn",
+      "host": "huggingface.co",
+      "type": "small",
+      "license": "apache-2.0",
+      "author": "Anurag Singh",
+      "wer": 18,
+      "size": "~1 GB"
+    }
+  ]
+}
