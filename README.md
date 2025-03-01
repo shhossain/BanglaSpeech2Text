@@ -53,12 +53,12 @@ transcription = stt.recognize("audio.wav")
 print(transcription)
 ```
 
-### Get Audio as they are processed with time
+### Get Transcription as they are processed with time
 
 ```python
 segments = stt.recognize("audio.wav", return_segments=True)
 for segment in segments:
-    print(f"Text: {segment.text}, Start: {segment.start}, End: {segment.end}")
+    print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
 ```
 
 ## Multiple Audio Formats
@@ -174,19 +174,10 @@ positional arguments:
 options:
   -h, --help
     show this help message and exit
-  -gpu
-    use gpu
-  -c CACHE, --cache CACHE
-    cache directory
   -o OUTPUT, --output OUTPUT
     output directory
   -m MODEL, --model MODEL
     model name
-  -s, --split
-    split audio file using pydub split_on_silence
-  -sm MIN_SILENCE_LENGTH, --min_silence_length MIN_SILENCE_LENGTH Minimum length of silence to split on (in ms)
-  -st SILENCE_THRESH, --silence_thresh SILENCE_THRESH dBFS below reference to be considered silence
-  -sp PADDING, --padding PADDING Padding to add to beginning and end of each split (in ms)
   --list list of available models
   --info show model info
 ```
