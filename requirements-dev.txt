@@ -1,0 +1,9 @@
+transformers
+faster-whisper
+torch
+PyYAML
+requests
+SpeechRecognition
+PyAudio
+pydub
+unittest
