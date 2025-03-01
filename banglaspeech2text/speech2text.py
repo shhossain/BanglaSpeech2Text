@@ -1,3 +1,4 @@
+from io import BytesIO
 from pathlib import Path
 import random
 from typing import Any, BinaryIO, Iterable, Literal, Optional, Union, overload
@@ -108,6 +109,10 @@ class Speech2Text(WhisperModel):
         elif isinstance(audio, bytes):
             with temp_file.open("wb") as f:
                 f.write(audio)
+        elif isinstance(audio, BytesIO):
+            with temp_file.open("wb") as f:
+                f.write(audio.read())
+
         elif isinstance(audio, Path):
             temp_file = audio
 
