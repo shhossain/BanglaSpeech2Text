@@ -6,4 +6,3 @@ requests
 SpeechRecognition
 PyAudio
 pydub
-unittest

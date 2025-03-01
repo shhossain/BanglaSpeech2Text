@@ -67,7 +67,6 @@ setup(
             "SpeechRecognition",
             "PyAudio",
             "pydub",
-            "unittest",
         ],
     },
     package_data={
