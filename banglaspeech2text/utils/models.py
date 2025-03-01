@@ -165,11 +165,7 @@ class BanglaASRModels:
     """Available Bangla ASR models."""
 
     def __init__(self):
-        self.models = {
-            "large": "anuragshas/whisper-large-v2-bn",
-            "medium": "anuragshas/whisper-medium-bn",
-            "small": "anuragshas/whisper-small-bn",
-        }
+        self.models = all_models
 
     def __call__(self):
         return self.models
@@ -185,7 +181,7 @@ class BanglaASRModels:
         models = ["tiny", "small", "medium", "base", "large"]
         if key < 0 or key > 4:
             raise IndexError("Index out of range. Index must be between 0 and 4")
-        return models[key]
+        return get_best_model(models[key])
 
 
 # nice list of models
